@@ -1,2 +1,2 @@
 # Multi-Aperture-Quantum-Imaging
-Quantum modal imaging methods for multi-aperture systems.
+Quantum super-resolution imaging using optical systems with multiple apertures.
