@@ -1,161 +1,276 @@
-clear
+function MultiAperture_ConstellationLocalization(method,ap_num,src_num,rl_frac,n_pho)
+
 close all
 
 % multi-aperture static measurement estimation
-n_pho = 1e4;        % mean photon flux rate for Poisson arrival process
 nu = 1;             % flux attenuation 
 
 % imaging system parameters
 subap_radius = 0.5; % radius of sub-apertures [units of length]
-D = 30;            % largest baseline [units of length]
 
 % make the sub-aperture length the reference unit
 ref_unit = subap_radius;
 
 % rescale everything to the reference unit
 subap_radius = subap_radius/ref_unit;  % radius of sub-apertures  [reference unit]
-D = D /ref_unit;                       % largest baseline         [reference unit]
 
-%[a_kx,a_ky] =  genGolay9(D);         % aperture coordinates [reference units]
-aper_coords = 4*genNgon(3);
-            
+% rayleigh length
+rl = 2*pi*1.22/(subap_radius);        % rayleigh length
+A_sub = pi*subap_radius^2;              % subaperture collection area
+
+%[a_kx,a_ky] =  genGolay9(D);           % aperture coordinates [reference units]
+aper_coords = 4*genNgon(ap_num,0); 
+%aper_coords = [0,0];
 a_kx = aper_coords(:,1); a_ky = aper_coords(:,2);
-n_apertures = size(a_kx,1);          % number of sub-apertures
+n_apertures = size(a_kx,1);             % number of sub-apertures
+A_tot = n_apertures * A_sub;            % total collection area of the multi-aperture system
 
-rl = 2*pi*1.22/subap_radius;        % rayleigh length
-A = pi*subap_radius^2;              % subaperture collection area
-A_tot = n_apertures * A;            % total collection area of the multi-aperture system
+% image plane discretization  
+ip_dim = 101;
+[X,Y] = meshgrid(rl * linspace(-.5,.5,ip_dim));
 
-%src_coords = rl/3*genNgon(3);
-src_coords = rl*[-.1,-.1; .1, .1]/4;
+% aperture plane discretization
+ap_dim = 101;
+[aperture,Kx,Ky] = ApertureConfig(a_kx,a_ky,ap_dim);
+rel_ap = subap_radius / Kx(1,end);     % ratio of sub-aperture diameter to aperture plane width
 
+% scene parameters 
+
+% source coordinates
+src_coords = rl*rl_frac*genNgon(src_num,0);
 n_sources = size(src_coords,1);           % number of sources in the scene
 s_x = src_coords(:,1); s_y = src_coords(:,2);
 s_b = ones(n_sources,1)/n_sources;             % source brightnesses
 
 
-% generate mode indices
-nj = [];
-mj = [];
-n_max = 5;         % max number of radial modes to truncate Hilbert Space with
-for n = 0:n_max
-    for m = -n:2:n
-        nj = [nj, n];
-        mj = [mj, m];
-    end
-end
-n_modes = numel(nj);
 
-% radial, azimuthal, and aperture index lists
-[vj,jj] = ndgrid(1:n_apertures,1:n_modes);
-nj = nj(jj(:));
-mj = mj(jj(:));
-vj = vj(:)';
-index_set = [nj,mj,vj];
+% mode parameters
+n_max = 3;         % max number of radial modes to truncate Hilbert Space with
 
-%VisualizeModes(rl,nj,mj,a_kx,a_ky)
-
-% linear index (OSA/ANSI standard)
-%j = ( nj.* (nj+2) )/2 + mj/2;
-
-method = 'SPADE';
 
 switch method
-    case 'SPADE'
+    case 'Gram-Schmidt'
+
+        [poly_coff,GS_basis_mom] = GSbasis_2DCartesian(Kx,Ky,aperture,n_max);
+        
+        for mode = 1:size(GS_basis_mom,3) 
+            new_dim = round(rel_ap*ap_dim*ip_dim / (2*1.22) );
+            % new_dim = round((subap2ap)*ap_dim*ip_dim/(2*1.22)); new_dim = new_dim + (mod(new_dim,2)+ mod(ip_dim,2));
+            tilde_phi = padarray(GS_basis_mom(:,:,mode).*aperture,ceil((new_dim-ap_dim)/2 * [1,1]),0,'both'); 
+            phi = fftshift(ifft2(ifftshift(tilde_phi)));
+            phi = cropSquare(phi,ip_dim,ip_dim)*(new_dim/ip_dim)^2;
+            GS_basis_pos(:,:,mode) = phi;
+        end
+ 
+        % rescale the probabilitiy to be commensurate with PSF (shouldn't
+        % have to do this but its a temporary hack)
+        PSF = reshape(directImagingModalProb(0,0,X,Y,a_kx,a_ky),[ip_dim,ip_dim]);
+        scaling = PSF(ceil(ip_dim/2),ceil(ip_dim/2)) / (abs(GS_basis_pos(ceil(ip_dim/2),ceil(ip_dim/2),1))^2);
+        GS_basis_pos = sqrt(scaling) * GS_basis_pos;
+        
+        % visualize the modes
+        %[nj,mj] = gramschmidtIndices(n_max);
+        %VisualizeModes(nj,mj, GS_basis_pos)
+        
+        % modal probability function
+        prob_fn = @(x,y) gramschmidtModalProb(x,y,X,Y,GS_basis_pos,A_tot);
+
+    case 'Zernike'
+        
+        [nj,mj,vj] = zernikeIndices(n_max,n_apertures);
         prob_fn = @(x,y) ModalProb(x,y,nj,mj,vj,a_kx,a_ky,A_tot);
-    case 'DD'
-        prob_fn = @(x,y) directImagingModalProb(x,y,rl,a_kx,a_ky);
+    
+    case 'Direct-Detection'
+    
+        prob_fn = @(x,y) directImagingModalProb(x,y,X,Y,a_kx,a_ky);
+
+        
 end
 
 % get modal probabilities for the given source distribution
 p_s = sum(s_b .* prob_fn(s_x,s_y),1);
 
 % simulate the measurement
-%pho_counts = simulateMeasurement(n_pho, nu, p_s);
-pho_counts = round(n_pho * nu * p_s);
-
+[measurement, mode_counts] = simulateMeasurement(n_pho, nu, p_s);
 
 figure
-aperture = ApertureConfig(a_kx,a_ky);
 imagesc(flipud(aperture))
 colormap('gray')
 title('Aperture Configuration')
 xlabel('$k_x \, (\delta)$','interpreter','latex')
 ylabel('$k_y \, (\delta)$','interpreter','latex')
+axis off
 axis square
 
 
-figure
+meas_fig = figure(1);
 switch method
-    case 'SPADE'
-        measurement = pho_counts;
-        stem(measurement);
-        title('Photon Counting Measurement')
+    case 'Gram-Schmidt'
+        stem(mode_counts);
+        title({'Photon Counting Measurement','Gram-Schmidt Basis',['Total Photons: ',num2str(sum(mode_counts))]});
         xlabel('mode index')
         ylabel('# photons')
-    case 'DD'
-        measurement = reshape(pho_counts, [51,51]);
-        imagesc(flipud(measurement))
+        
+    case 'Zernike'
+        stem(mode_counts);
+        title({'Photon Counting Measurement','FT Zernike Basis',['Total Photons: ',num2str(sum(mode_counts))]});
+        xlabel('mode index')
+        ylabel('# photons')
+    case 'Direct-Detection'
+        DD_photons = reshape(mode_counts, ip_dim*[1,1]);
+        imagesc(flipud(DD_photons))
         colorbar
-        title({'Direct Detection Measurement',['Photons: ',num2str(sum(pho_counts))]});
+        title({'Direct Detection Measurement',['Total Photons: ',num2str(sum(mode_counts))]});
         xlabel('x (rl)')
-        xticks([1,ceil(51/2),51])
+        xticks([1,ceil(101/2),101])
         xticklabels({'-1/2','0','rl/2'})
         ylabel('y (rl)')
-        yticks([1,ceil(51/2),51])
+        yticks([1,ceil(101/2),101])
         yticklabels({'-1/2','0','rl/2'})
         axis square
+    
 end
 
 
 
-figure
+est_fig = figure(2);
 scatter(s_x/rl,s_y/rl,'filled','black')
 xlim([-1/2,1/2])
-ylim([-1/2,1/2])
 xticks([-0.5,0,0.5]);
 xticklabels({'-1/2','0','1/2'})
 xlabel('x (rl)')
+ylim([-1/2,1/2])
 yticks([-0.5,0,0.5]);
 yticklabels({'-1/2','0','1/2'})
 ylabel('y (rl)')
 hold on
 
 % find MLE
-[s_b_mle, s_x_mle, s_y_mle] = EM(pho_counts,n_sources,rl,prob_fn);
+[s_b_mle, s_x_mle, s_y_mle, count] = EM(measurement,n_sources,prob_fn,X,Y);
 
 hold on
 scatter(s_x_mle/rl,s_y_mle/rl,'filled','red')
 hold off
 axis square
-title({'Expectation Maximization',['Single-Aperture ', method]})
+title({'Expectation Maximization',[num2str(ap_num),'-aperture ', method]})
+names = cell(1,count+3);
+names(:) = {''}; names(1) = {'Ground Truth'}; names(end) = {'EM Estimate'};
+legend(names)
 
-% simulate a measurement
-function n = simulateMeasurement(n_pho,nu,p)
-    N = poissrnd(n_pho*nu); % number of photons collected
-    
-    % distribute photons into modal bins
-    n = mnrnd(N,p);
+
+% save outputs
+save_dir = fullfile(method,[num2str(ap_num),'-aperture'],[num2str(src_num),'-src'],[num2str(rl_frac),'rl']);
+mkdir(save_dir)
+
+meas_file = fullfile(save_dir,'measurement.png');
+est_file = fullfile(save_dir,'estimate.png');
+pst_cnt = 1;
+while isfile(meas_file) || isfile(est_file)
+    meas_file = fullfile(save_dir,['measurement',num2str(pst_cnt),'.png']);
+    est_file =  fullfile(save_dir,['estimate',num2str(pst_cnt),'.png']);
+    pst_cnt = pst_cnt + 1;
 end
 
-function [aperture] = ApertureConfig(a_kx,a_ky)
+saveas(meas_fig,meas_file);
+saveas(est_fig,est_file);
+
+end
+
+% simulate a measurement
+function [measurement,mode_count] = simulateMeasurement(n_pho,nu,p)
+    N = poissrnd(n_pho*nu); % number of photons collected
+    
+    % randomly assign modal bin to each photon according to PMF
+    modes = 1:numel(p);
+    measurement = datasample(modes,N,'Weights',p);
+    
+    % count photons in modal bins
+    [gc,gs] = groupcounts(measurement');
+    mode_count = zeros(numel(p),1);
+    mode_count(gs) = gc;
+end
+
+
+function [nj,mj,vj] = zernikeIndices(n_max,n_apertures)
+    nj = [];
+    mj = [];
+
+    for n = 0:n_max
+        for m = -n:2:n
+            nj = [nj, n];
+            mj = [mj, m];
+        end
+    end
+
+    n_modes = numel(nj);
+
+    % radial, azimuthal, and aperture index lists
+    [vj,jj] = ndgrid(1:n_apertures,1:n_modes);
+    nj = nj(jj(:));
+    mj = mj(jj(:));
+    vj = vj(:)';
+    
+end
+
+function [nj,mj] = gramschmidtIndices(n_max)
+    nj = [];
+    mj = [];
+
+    for n = 0:n_max
+        for m = 0:n_max
+            nj = [nj, n];
+            mj = [mj, m];
+        end
+    end
+    %{
+    n_modes = numel(nj);
+
+    % radial, azimuthal, and aperture index lists
+    [vj,jj] = ndgrid(1:n_apertures,1:n_modes);
+    nj = nj(jj(:));
+    mj = mj(jj(:));
+    vj = vj(:)';
+    %}
+end
+
+function [A,Kx,Ky] = ApertureConfig(a_kx,a_ky,ap_dim)
     % gives the multi-aperture function
     % a_kx and a_ky are the coordinates of the sub-apertures in fractional
     % amounts of the aperture radius (dimensionless).
     
-    kx_delta = max(abs(a_kx))+2;
-    ky_delta = max(abs(a_ky))+2;
+    kx_delta = max(abs(a_kx))+1;
+    ky_delta = max(abs(a_ky))+1;
     delta = max(kx_delta,ky_delta);
-    [Kx,Ky] = meshgrid(linspace(-delta,delta,100));
     
-    circ = @(u,v) 1/sqrt(pi) * (u.^2 + v.^2 < 1);
+    % aperture plane coordinate grid
+    [Kx,Ky] = meshgrid(linspace(-delta,delta,ap_dim));
+    dkx = (Kx(1,2)-Kx(1,1)); dky =(Ky(2,1)-Ky(1,1));
     
-    aperture = zeros(size(Kx));
+    circ = @(u,v) (u.^2 + v.^2 < 1);
+    
+    % construct aperture
+    A = zeros(size(Kx));
     for k = 1:numel(a_kx)
-        aperture = aperture + circ(Kx-a_kx(k),Ky - a_ky(k));
+        A = A + circ(Kx-a_kx(k),Ky - a_ky(k));
     end
     
-    aperture = aperture / numel(a_kx);    
+    A = A / sqrt(sum(dkx*dky * abs(A).^2, 'all'));   
+end
+
+function p = gramschmidtModalProb(x,y,X,Y,GS_modes,A_tot)
+    
+    dx = X(1,2) - X(1,1);
+    dy = Y(2,1) - Y(1,1);
+
+    n_modes = size(GS_modes,3);
+        
+    p = zeros([numel(x),n_modes]);
+    for i = 1:n_modes
+        GS_i = GS_modes(:,:,i);
+        p(:,i) = interp2(X,Y, (2*pi / sqrt(A_tot) * abs(GS_i)).^2,x,y) * dx * dy;
+    end
+    
+    p = p ./ sum(p,2);              % normalize
 end
 
 
@@ -173,18 +288,25 @@ function phi_nm = ModalBasis(x,y,n,m,v,a_kx,a_ky)
     %--------------
     % phi_nm - [NxM]
 
-    
-    phase = exp(1i*(a_kx(v)'.*x + a_ky(v)'.*y));
+    if numel(a_kx) == 1
+        phase = exp(1i*(a_kx .*x + a_ky .*y));
+    else
+        phase = exp(1i*(a_kx(v)'.*x + a_ky(v)'.*y));
+    end
     [th,r] = cart2pol(x,y);
     phi_nm = FTZernikeBasis(r,th,n,m) .* phase;    
 
 end
 
 
-function p = directImagingModalProb(s_x,s_y,rl,a_kx,a_ky)
-
-    [X,Y] = meshgrid(rl * linspace(-.5,.5,51));
+function p = directImagingModalProb(s_x,s_y,X,Y,a_kx,a_ky)
+    % Defines the probability distribution over the image plane for
+    % given source positions s_x, s_y and aperture positions a_kx, a_ky.
+    % In direct detection the measurement modes are delta functions 
+    % on the image plane.
+    
     dx = X(1,2) - X(1,1);
+    dy = Y(2,1) - Y(1,1);
     p = zeros(numel(s_x),numel(X));
     
     n_apertures = numel(a_kx);
@@ -193,48 +315,45 @@ function p = directImagingModalProb(s_x,s_y,rl,a_kx,a_ky)
     vj = (1:n_apertures)';
     
     for k = 1:numel(s_x)
-        p(k,:) = abs(sum(ModalBasis(X(:)-s_x(k),Y(:)-s_y(k),nj,mj,vj,a_kx,a_ky),2)).^2 *dx^2;    
+        p(k,:) = abs(sum(ModalBasis(X(:)-s_x(k),Y(:)-s_y(k),nj,mj,vj,a_kx,a_ky),2)).^2 *dx*dy;    
     end
     
 end
 
 
-
-function p_j = ModalProb(x,y,nj,mj,vj,a_kx,a_ky,A_tot)
+function p = ModalProb(x,y,nj,mj,vj,a_kx,a_ky,A_tot)
     % returns a discrete PMF over the 2D modes which constitutes the photon modal detection
     % probabilities for photons emitted by a point source at the position x,y
 
     % correlation function
     correlation_fn = @(x,y)  2*pi / sqrt(A_tot) * conj(ModalBasis(x,y,nj,mj,vj,a_kx,a_ky));
 
-    p_j = abs(correlation_fn(x,y)).^2;
-    p_j = [p_j, max(0,1-sum(p_j,2))];     % add bucket mode due to truncation
-    p_j = p_j ./ sum(p_j,2);              % normalize
+    p = abs(correlation_fn(x,y)).^2;
+    p = [p, max(0,1-sum(p,2))];     % add bucket mode due to truncation
+    p = p ./ sum(p,2);              % normalize
 end
 
-function VisualizeModes(rl,nj,mj,a_kx,a_ky)
-    grid = 51;
-    [X,Y] = meshgrid(2*rl*linspace(-1,1,grid));
-    phi_nm = ModalBasis(X(:),Y(:),nj,mj,a_kx,a_ky);
+function VisualizeModes(nj,mj,phi_nm)
+    
+    nn = unique(nj);
+    mm = unique(mj);
+
     
     figure
     for j = 1:numel(nj)
-        pr = nj(j);
-        pc = (mj(j)+nj(j))/2;
-        k = sub2ind([max(nj)+1,max(nj)+1],pr+1,pc+1);
         
-        subplot(max(nj)+1,max(nj)+1,k)
+        subplot(numel(nn),numel(mm),j)
         
-        imagesc(reshape( abs(phi_nm(:,j)).^2,[grid,grid]))
+        imagesc(abs(phi_nm(:,:,j)).^2)
         title(['(',num2str(nj(j)),',',num2str(mj(j)),')'])
         axis square
 
-        xticks([1,ceil(grid/2),grid]);
-        xticklabels([-2,0,2])
+        xticks([1,ceil(size(phi_nm,2)/2),size(phi_nm,2)]);
+        xticklabels([-1/2,0,1/2])
         xlabel('rl')
 
-        yticks([1,ceil(grid/2),grid]);
-        yticklabels([-2,0,2])
+        yticks([1,ceil(size(phi_nm,1)/2),size(phi_nm,1)]);
+        yticklabels([-1/2,0,1/2])
         ylabel('rl')
     end    
 end
@@ -291,14 +410,22 @@ function coords_xy = genRandSource(rl,n_sources)
     coords_xy = [x,y];
 end
 
-function coords_xy = genNgon(n)
+function coords_xy = genNgon(n,rand_rotation)
     % generates the vertex coordinates of polygon with n vertices equally spaced
     % around a disk. The vertex separation is defined to be 1.
-    assert(n>1);
+    if n == 1
+        coords_xy = [0,0];
+        return
+    end
+    
     
     r = ones([n,1])/2;
-    th = 2*pi*(0:n-1)'/n;
+    th = 2*pi*(0:n-1)'/n + pi/2;
     del_th = th(2)-th(1);
+    
+    if rand_rotation
+        th = th + 2*pi*rand(1);
+    end
     
     % source positions on a unit disk (radius = 1)
     [x,y] = pol2cart(th,r); 
@@ -311,6 +438,7 @@ function coords_xy = genNgon(n)
 end
 
 function aper_coords  = genGolay9(D)
+    
     R1 = D * 1/3 * ones(3,1); 
     R2 = D * 2/3 * ones(3,1);
     R3 = D * 3/3 * ones(3,1);
@@ -328,26 +456,18 @@ end
 
 
 
-function [s_b, s_x, s_y] = EM(mode_pho_count,num_sources,rl,prob_fn)
+function [s_b, s_x, s_y, count] = EM(measurement,num_sources,prob_fn,X,Y)
 % runs expectation maximization to determine source coordinates and source
 % brightnesses from a measurement.
-
-% pho_out           : A [1xJ] vector containing the number of photons counted in each
-%                     mode
+%
+% measurement       :
 % num_sources       : How many sources involved in the scene
-% fov_range         : a 1D range of where the sources might be located
 % prob_fn           : modal photon detection PMF given a source located at (x,y)
 
-% make a grid for the source position space
-[X,Y] = meshgrid(rl * linspace(-0.5, +0.5, 51));
-
-% explicit measurement outcomes (which mode each photon went into)
-pho_j = [];
-for j = 1:size(mode_pho_count,2)
-    pho_j = [pho_j, j*ones(1,mode_pho_count(j))];
-end
-
 % initialize source positions
+rl = X(1,end)-X(1,1);
+dx = X(1,2) - X(1,1);
+dy = Y(2,1) - Y(1,1);
 s_x = rl/3*(rand(num_sources,1)-.5);
 s_y = rl/3*(rand(num_sources,1)-.5);
 
@@ -381,12 +501,12 @@ while ( ~isempty(find(s_x-s_x_old, 1)) || ~isempty(find(s_y-s_y_old, 1))) && cou
       
     % measurement weights
     p_c = s_b .* p_j_est;
-    T = p_c(:,pho_j);
+    T = p_c(:,measurement);
     T = T ./ sum(T,1);
     
     % get Q
     P_xy = prob_fn(X(:),Y(:));      % PMF for candidate source locations X,Y
-    lnP_jxy = log(P_xy(:,pho_j));         % probability of detected photon mode at all candidate source locations
+    lnP_jxy = log(P_xy(:,measurement));         % probability of detected photon mode at all candidate source locations
     Q = T * lnP_jxy';
     
     %Q = Q + 1e-2*randn(size(Q)); % add gaussian noise to MLE break ties
@@ -410,21 +530,18 @@ while ( ~isempty(find(s_x-s_x_old, 1)) || ~isempty(find(s_y-s_y_old, 1))) && cou
     % MAXIMIZATION STEP
     %s_b = sum(T,2)/size(T,2); % update source weights
     
-    
-    % simple but doesn't work if there is too much symmetry (non-robust)
-    %[~,ind_sxy] = max(Q,[],2); % update source positions
-    
     % get max likelihood location indices
     % the following ensures distinct source locations are chosen
-    
     ind_sxy = getMLESourceIndices(Q_2D);
     
-    s_x = X(ind_sxy);
-    s_y = Y(ind_sxy);
+    % assign source positions (plus a bit of noise to avoid degeneracies) 
+    s_x = X(ind_sxy);% + dx*randn(numel(ind_sxy),1);
+    s_y = Y(ind_sxy);% + dy*randn(numel(ind_sxy),1);
 
     % increment count
     count = count + 1;
     
+    % plot intermediate estimate
     scatter(s_x/rl,s_y/rl);
 end
 
@@ -468,7 +585,7 @@ function idx_sxy = getMLESourceIndices(Q_2D)
     figure
     for i = 1:size(Q_2D,3)
         [s_iy,s_ix] = ind2sub(dim_2D,H{i});
-        scatter(s_ix/51 - 0.5,s_iy/51 - 0.5) 
+        scatter(s_ix/101 - 0.5,s_iy/101 - 0.5) 
         hold on
     end
     
@@ -483,7 +600,7 @@ function idx_sxy = getMLESourceIndices(Q_2D)
     
     [s_y,s_x] = ind2sub(dim_2D,idx_sxy);
     figure
-    scatter(s_x/51 - 0.5,s_y/51 - 0.5)
+    scatter(s_x/101 - 0.5,s_y/101 - 0.5)
     xlim([-.5,.5])
     ylim([-.5,.5])
     title('Selected Source Locations')
@@ -579,4 +696,16 @@ else
     end
 end
 
+end
+
+function I_out =  cropSquare(I,sq_r,sq_c)
+    
+    row_max = size(I,1);
+    col_max = size(I,2); 
+    
+    center = [ceil(row_max/2),ceil(col_max/2)];
+    delta = [floor(sq_r/2),floor(sq_c/2)];
+    
+    I_out = I( (center(1)-delta(1)) : (center(1)+delta(1)) ,...
+               (center(2)-delta(2)) : (center(2)+delta(2)));
 end
