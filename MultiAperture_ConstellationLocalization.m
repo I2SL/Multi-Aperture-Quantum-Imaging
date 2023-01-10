@@ -45,7 +45,7 @@ s_b = ones(n_sources,1)/n_sources;             % source brightnesses
 
 
 % mode parameters
-n_max = 3;         % max number of radial modes to truncate Hilbert Space with
+n_max = 2;         % max number of radial modes to truncate Hilbert Space with
 
 
 switch method
@@ -69,8 +69,8 @@ switch method
         GS_basis_pos = sqrt(scaling) * GS_basis_pos;
         
         % visualize the modes
-        %[nj,mj] = gramschmidtIndices(n_max);
-        %VisualizeModes(nj,mj, GS_basis_pos)
+        [nj,mj] = gramschmidtIndices(n_max);
+        VisualizeModes(nj,mj, GS_basis_pos)
         
         % modal probability function
         prob_fn = @(x,y) gramschmidtModalProb(x,y,X,Y,GS_basis_pos,A_tot);
@@ -103,7 +103,7 @@ axis off
 axis square
 
 
-meas_fig = figure(1);
+figs(1) = figure;
 switch method
     case 'Gram-Schmidt'
         stem(mode_counts);
@@ -133,15 +133,13 @@ end
 
 
 
-est_fig = figure(2);
+figs(2) = figure;
 scatter(s_x/rl,s_y/rl,'filled','black')
-xlim([-1/2,1/2])
-xticks([-0.5,0,0.5]);
-xticklabels({'-1/2','0','1/2'})
+xlim([-.5,.5])
+xticks(linspace(-.5,.5,7));
 xlabel('x (rl)')
-ylim([-1/2,1/2])
-yticks([-0.5,0,0.5]);
-yticklabels({'-1/2','0','1/2'})
+ylim([-.5,.5])
+yticks(linspace(-.5,.5,7));
 ylabel('y (rl)')
 hold on
 
@@ -164,15 +162,21 @@ mkdir(save_dir)
 
 meas_file = fullfile(save_dir,'measurement.png');
 est_file = fullfile(save_dir,'estimate.png');
+fig_file = fullfile(save_dir,'figures.fig');
 pst_cnt = 1;
-while isfile(meas_file) || isfile(est_file)
+while isfile(meas_file) || isfile(est_file) || isfile(fig_file)
     meas_file = fullfile(save_dir,['measurement',num2str(pst_cnt),'.png']);
     est_file =  fullfile(save_dir,['estimate',num2str(pst_cnt),'.png']);
+    fig_file = fullfile(save_dir,['figures',num2str(pst_cnt),'.fig']);
     pst_cnt = pst_cnt + 1;
 end
 
-saveas(meas_fig,meas_file);
-saveas(est_fig,est_file);
+% save figures
+savefig(figs,fig_file)
+
+% save images
+saveas(figs(1),meas_file);
+saveas(figs(2),est_file);
 
 end
 
