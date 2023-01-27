@@ -1,0 +1,55 @@
+function VisualizeModes_MixedAperture(nj,mj,vj,X,Y,U,aper_coords)
+    
+ 
+       num_modes = numel(nj);
+       psi_nmv = abs(Basis_MixedAperture([5*X(:),5*Y(:)],nj,mj,vj,U,aper_coords)).^2;
+       psi_nmv = reshape(psi_nmv,[size(X),num_modes]);
+       
+       pages = unique(vj);
+       modes = max(nj)+1;
+       [n,inj,in] = unique(nj);
+       [m,imj,im] = unique(mj);
+       
+       [vjs,ind_vjs] = sort(vj);
+       
+       
+       njs = nj(ind_vjs);
+       mjs = mj(ind_vjs);
+       
+       
+       figure
+       sz = [3,4];
+       for j = num_modes/2+1:num_modes
+           subplot(sz(1),sz(2),j-num_modes/2)
+           imagesc(psi_nmv(:,:,ind_vjs(j)))
+           axis 'square'
+           title(['(',num2str(njs(j)),',',num2str(mjs(j)),')'])
+           xticks([])
+           yticks([])
+       end
+           
+       
+       
+       
+       
+       
+       figs = cell(numel(pages),1);
+       for p = pages
+           figs{p} = figure(p);           
+       end
+       
+       
+       sz = [max(in),max(im)];
+       for j = 1:num_modes
+           k = sub2ind(sz,in(j),im(j));
+           %set(0,'CurrentFigure',figs{p}) 
+           subplot(sz(1),sz(2),k,'Parent', figs{p})
+           imagesc(psi_nmv(:,:,j))
+           axis 'square'
+           title(['(',num2str(n(in(j))),',',num2str(m(im(j))),')'])
+           xticks([])
+           yticks([])
+           
+       end
+
+end
