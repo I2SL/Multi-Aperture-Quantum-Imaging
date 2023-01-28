@@ -1,32 +1,30 @@
 function VisualizeModes_MixedAperture(nj,mj,vj,X,Y,U,aper_coords)
-    
+       % A visualization script for seeing the mixed aperture modes.
+       % Each aperture index vj is displayed in a new figure page.
  
        num_modes = numel(nj);
        psi_nmv = abs(Basis_MixedAperture([5*X(:),5*Y(:)],nj,mj,vj,U,aper_coords)).^2;
        psi_nmv = reshape(psi_nmv,[size(X),num_modes]);
        
-       pages = unique(vj);
-       modes = max(nj)+1;
-       [n,inj,in] = unique(nj);
-       [m,imj,im] = unique(mj);
+             
+       max_n = max(nj);
+       sz = [max_n+1,2*max_n+1];
        
-       
-       
-       figs = cell(numel(pages),1);
-       for p = pages
-           figs{p} = figure(p);           
-       end
-       
-       
-       sz = [max(in),max(im)];
+       v = 0;
        for j = 1:num_modes
-           k = sub2ind(sz,in(j),im(j));
-           %set(0,'CurrentFigure',figs{p}) 
-           subplot(sz(1),sz(2),k,'Parent', figs{p})
+           % trigger a new figure if the aperture index changes
+           if vj(j) ~= v
+               figure
+               v = vj(j);
+           end
+           
+           n = nj(j); m = mj(j);
+           k = sub2ind([sz(2),sz(1)],m+max_n+1,n+1);
+           subplot(sz(1),sz(2),k)
            imagesc(psi_nmv(:,:,j))
            axis 'square'
-           title(['(',num2str(n(in(j))),',',num2str(m(im(j))),')'])
-           
+           title(['$(',num2str(n),',',num2str(m),')_',num2str(v),'$'],'interpreter','latex')
+           xticks([])
+           yticks([])
        end
-
 end

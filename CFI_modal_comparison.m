@@ -1,6 +1,8 @@
 % Local Zernike Mode vs Gram-Schmidt Modes CFI comparison for 2 point
 % source problem using 2 apertures.
 
+clear
+
 % multi-aperture static measurement estimation
 nu = 1;             % flux attenuation 
 
@@ -13,85 +15,176 @@ ref_unit = subap_radius;
 % rescale everything to the reference unit
 subap_radius = subap_radius/ref_unit;   % radius of sub-apertures  [reference unit]
 A_sub = pi*subap_radius^2;              % subaperture collection area
-
-% multi-aperture 
-num_apertures = 2;                % number of apertures
-A_tot = num_apertures * A_sub;                      % total collection area of the multi-aperture system
-U = 0.5*[1,1;-1i,1i];                                 % aperture mixing matrix
-
-% rayleig length
 rl_1ap =  2*pi*1.22;                                % single-aperture rayleigh length
 
+% multi-aperture parameters
+num_apertures = 2;                % number of apertures
+A_tot = num_apertures * A_sub;                        % total collection area of the multi-aperture system
+U = sqrt(0.5)*[1,1;-1i,1i];                           % aperture mixing matrix
+
+%aper_coords = x(i)*subap_radius*[0,1;0,-1];           % aperture coordinates
+%B = pdist(aper_coords);                               % baseline lengths
+%max_B = max([1,B]);                                   % max baseline
+%rl = rl_1ap/max_B;                                  % multi-aperture rayleigh length
+
+
+
+% max modal order
+n_max = 5;                                        
+
 % Zernike modes
-n_max = 5;                                          % max radial order of zernikes
-[n,m,v] = zernikeIndices(n_max, num_apertures);     % mixed mode indices
-num_modes = (n_max+1)*(n_max+2)/2 * num_apertures;  % total number of modes
+[n,m,v] = Indices_MixedAperture(n_max, num_apertures);     % mixed mode indices
+num_zern_modes = (n_max+1)*(n_max+2)/2 * num_apertures;  % total number of modes
+
+
+% Gram-Schmidt Modes
+num_GS_modes = (n_max+1)^2;
+
 
 % Two point source problem parameters
 %src_coords = rl/20*[0,1;0,-1];
 alpha_vec = rl_1ap/20*[0,1];                            % source displacement coordinate
 n_sources = 2;
-b_s = ones(n_sources,1)./ n_sources; % source brightnesses
+s_b = ones(n_sources,1)./ n_sources; % source brightnesses
+
+
 
 % loop through aperture separations
 N = 100;
 x = linspace(.001,1,N);
 for i = 1:N
 % multi-aperture parameters
-aper_coords = x(i)*subap_radius*[0,1;0,-1];            % aperture coordinates
+aper_coords = x(i)*subap_radius*[0,1;0,-1];          % aperture coordinates
 B = pdist(aper_coords);                             % baseline lengths
 max_B = max([1,B]);                                 % max baseline
 
 % rayleigh length
 rl = rl_1ap/max_B;                                  % multi-aperture rayleigh length
 
+% image plane discretization  
+ip_dim = 51;
+[X,Y] = meshgrid(rl * linspace(-.5,.5,ip_dim));
+
+% aperture plane discretization
+ap_dim = 51;
+[aperture,Kx,Ky] = ApertureConfig(aper_coords(:,1),aper_coords(:,2),ap_dim);
+rel_ap = subap_radius / Kx(1,end);                      % ratio of sub-aperture radius to aperture plane half-width
+
+[poly_coeff,GS_basis_mom,GS_basis_pos] = genGramSchmidtBasis(Kx,Ky,aperture,n_max,ap_dim,ip_dim,rel_ap);
+% ensure the position space modes are properly normalized
+% (an on-axis source should produce probability 1 in the 00 mode)
+GS_normalization = sqrt(A_tot)*abs(Basis_GramSchmidt(0,0,X,Y,GS_basis_pos(:,:,1)));
+GS_basis_pos = GS_basis_pos / GS_normalization;
+
+
 % Modal contribution to CFI for zernikes
-CFI_zern(i,:) = MixedApertureCFI(alpha_vec,n,m,v,U,aper_coords,A_tot,b_s);
+CFI_zern(i,:) = CFI_r_MixedAperture(alpha_vec,n,m,v,U,aper_coords,A_tot,s_b);
+%CFI_gs(i,:) = CFI_r_GramSchmidt(alpha_vec,X,Y,GS_basis_pos,A_tot,s_b);
 end
 
-CFI_x = sum(CFI_zern,2);
+
+CFI_zern_x = sum(CFI_zern,2);
+%CFI_gs_x = sum(CFI_gs,2);
 
 % Compute QFI
-[n1,m1,~] = zernikeIndices(n_max, 1);     % single aperture indices
+[n1,m1,~] = Indices_MixedAperture(n_max, 1);     % single aperture indices
 [r,theta] = cart2pol(alpha_vec(:,1),alpha_vec(:,2));
-QFI = sum( 4 * ((2*pi)/sqrt(A_sub) *  abs(dr_FTZernikeBasis(r,theta,n1,m1))).^2);
+QFI = sum( 4 * ((2*pi)/sqrt(A_sub) *  abs(dr_FTZernike(r,theta,n1,m1))).^2);
 
 k1 = 1;
 k2 = num_apertures;
-for i=1:num_modes/num_apertures
+for i=1:num_zern_modes/num_apertures
 CFI_zern_nm(:,i) = sum(CFI_zern(:,k1:k2),2);
 k1 = k2+1;
 k2 = k1 + num_apertures - 1;
 end
 
-
 % figures
-
-
 % Show CFI as a function of aperture spacing
 figure
-plot(x,CFI_x)
+plot(x,CFI_zern_x)
 title('2-Aperture Local-Mode CFI')
 xlabel('Aperture Half Spacing [$\delta$ : subaperture radius]','interpreter','latex')
 ylabel('Source Half Separation CFI $\mathcal{J}_{\alpha \alpha}$','interpreter','latex')
 ylim([0,0.5*(QFI+4*x(end))]);
 
 
-% show CFI per mode at different aperture separations
+
+
+
+% show CFI per local mode at different aperture separations
 figure
-bar3(x,CFI_zern_nm(:,1:6))
+bar3(x,CFI_zern_nm(:,1:2))
 axis 'square'
 zlabel('Source Half Separation CFI by Mode $[\mathcal{J}_{\alpha \alpha}]_j$','interpreter','latex')
 ylabel('Aperture Half Spacing [$\delta$ : subaperture radius]','interpreter','latex')
 xlabel('Local Mode Index $j$','interpreter','latex')
 xticklabels(0:5)
-title('Aperture-Sum CFI by Local Mode')
+title('Aperture-Sum CFI by Local Mode','interpreter','latex')
 
 
 
+% show CFI per mode at different aperture separations
+figure
+bar3(x,CFI_zern(:,1:4))
+axis 'square'
+zlabel('Source Half Separation CFI by Mode $[\mathcal{J}_{\alpha \alpha}]_j$','interpreter','latex')
+ylabel('Aperture Half Spacing [$\delta$ : subaperture radius]','interpreter','latex')
+xlabel('Mixed Local Mode Index ($j,\nu$)','interpreter','latex')
+xticklabels({'0+','0-','1+','1-'})
+title({'CFI by Mode','Mixed Zernike Local Modes'},'interpreter','latex')
 
 
 
+figure
+plot(x,CFI_gs_x)
+
+%{
+
+function [A,Kx,Ky] = ApertureConfig(a_kx,a_ky,ap_dim)
+    % gives the multi-aperture function
+    % a_kx and a_ky are the coordinates of the sub-apertures in fractional
+    % amounts of the aperture radius (dimensionless).
+    
+    kx_delta = max(abs(a_kx))+1;
+    ky_delta = max(abs(a_ky))+1;
+    delta = max(kx_delta,ky_delta);
+    
+    % aperture plane coordinate grid
+    [Kx,Ky] = meshgrid(linspace(-delta,delta,ap_dim));
+    dkx = (Kx(1,2)-Kx(1,1)); dky =(Ky(2,1)-Ky(1,1));
+    
+    circ = @(u,v) (u.^2 + v.^2 < 1);
+    
+    % construct aperture
+    A = zeros(size(Kx));
+    for k = 1:numel(a_kx)
+        A = A + circ(Kx-a_kx(k),Ky - a_ky(k));
+    end
+    
+    A = A / sqrt(sum(dkx*dky * abs(A).^2, 'all'));   
+end
+
+function CFI_r_nm_v = MixedApertureCFI(alpha_vec,n,m,v,U,aper_coords,A_tot,b_s)
+
+    
+    % Probability of mixed mode (n,m,v)
+    P_k_nu = sum(b_s .* abs(corrFnMixedApertureBasis(alpha_vec,n,m,v,U,aper_coords,A_tot)).^2);
+    
+    % partial derivative of the probability with respect to the separation
+    
+    dr_P_k_nu_s = real(   conj(corrFnMixedApertureBasis(alpha_vec,n,m,v,U,aper_coords,A_tot)) .* dr_corrFnMAB(alpha_vec,n,m,v,U,aper_coords,A_tot) +...
+                        conj(corrFnMixedApertureBasis(-alpha_vec,n,m,v,U,aper_coords,A_tot)).* dr_corrFnMAB(-alpha_vec,n,m,v,U,aper_coords,A_tot)...
+                     );
+            
+    % weight by the source brightnesses
+    %dr_P_k_nu = sum(b_s .* dr_P_k_nu_s);
+    dr_P_k_nu = dr_P_k_nu_s; 
+    
+    % 2-point source separation CFI
+    CFI_r_nm_v = (dr_P_k_nu).^2 ./ P_k_nu;
+
+end
 
 function CFI_r_nm = GramSchmidtCFI(x,y,X,Y,GS_modes,A_tot,b_s)
     % GS correlation function  (we have this)
@@ -109,12 +202,6 @@ function CFI_r_nm = GramSchmidtCFI(x,y,X,Y,GS_modes,A_tot,b_s)
     
     
 end
-
-
-
-
-
-
 
 function p = GramSchmidtModalProb(x,y,X,Y,GS_modes,A_tot)
     % Computes the modal probability of detecting a photon in the
@@ -139,34 +226,9 @@ function p = GramSchmidtModalProb(x,y,X,Y,GS_modes,A_tot)
     p = p ./ sum(p,2);              % normalize
 end
 
-
-
-function CFI_r_nm_v = MixedApertureCFI(alpha_vec,n,m,v,U,aper_coords,A_tot,b_s)
-
-    
-    % Probability of mixed mode (n,m,v)
-    P_k_nu = sum(b_s .* abs(corrFnMixedApertureBasis(alpha_vec,n,m,v,U,aper_coords,A_tot)).^2);
-    
-    % partial derivative of the probability with respect to the separation
-    
-    dr_P_k_nu_s = real(   conj(corrFnMixedApertureBasis(alpha_vec,n,m,v,U,aper_coords,A_tot)) .* dr_corrFnMAB(alpha_vec,n,m,v,U,aper_coords,A_tot) +...
-                        conj(corrFnMixedApertureBasis(-alpha_vec,n,m,v,U,aper_coords,A_tot)).* dr_corrFnMAB(-alpha_vec,n,m,v,U,aper_coords,A_tot)...
-                     );
-            
-    % weight by the source brightnesses
-    %dr_P_k_nu = sum(b_s .* dr_P_k_nu_s);
-    dr_P_k_nu = dr_P_k_nu_s; 
-    
-    % 2-point source separation CFI
-    CFI_r_nm_v = (dr_P_k_nu).^2 ./ P_k_nu;
-
-end
-
-
 function Gamma_nm_v = corrFnMixedApertureBasis(xy_coords,n,m,v,U,aper_coords,A_tot)
        Gamma_nm_v =  2*pi/sqrt(A_tot) * MixedApertureBasis(xy_coords,n,m,v,U,aper_coords);
 end
-
 
 function dr_Gamma_nm_v = dr_corrFnMAB(xy_coords,n,m,v,U,aper_coords,A_tot)
 % derivative of Gamma wrt to source half-separation
@@ -174,7 +236,6 @@ function dr_Gamma_nm_v = dr_corrFnMAB(xy_coords,n,m,v,U,aper_coords,A_tot)
 dr_Gamma_nm_v =  2*pi/sqrt(A_tot) * conj(dr_FTZernikeBasis(r,theta,n,m) .* phaseFn(xy_coords,v,U,aper_coords)...
                                      + FTZernikeBasis(r,theta,n,m) .* dr_phaseFn(xy_coords,v,U,aper_coords));    
 end
-
 
 function psi_nm_v = MixedApertureBasis(xy_coords,n,m,v,U,aper_coords)
     % xy_coords : Nx2 matrix with cartesian coordinate pairs at which to
@@ -218,7 +279,6 @@ function dr_z = dr_FTZernikeBasis(r,theta,n,m)
     % parameter
     dr_z = ((-1).^(n/2)) ./(4*sqrt(pi)*sqrt(n+1)) .* FTzAngle(theta,m) .* (besselj(n-1,r) - besselj(n+3,r));
 end
-
 
 function z = FTZernikeBasis(r,theta,n,m)
     % returns the evaluation of the function and its linear indices
@@ -282,3 +342,17 @@ function [nj,mj,vj] = zernikeIndices(n_max,n_apertures)
     vj = vj(:)';
     
 end
+
+function I_out =  cropSquare(I,sq_r,sq_c)
+    
+    row_max = size(I,1);
+    col_max = size(I,2); 
+    
+    center = [ceil(row_max/2),ceil(col_max/2)];
+    delta = [floor(sq_r/2),floor(sq_c/2)];
+    
+    I_out = I( (center(1)-delta(1)) : (center(1)+delta(1)) ,...
+               (center(2)-delta(2)) : (center(2)+delta(2)));
+end
+
+%}

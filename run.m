@@ -1,4 +1,4 @@
-%{
+
 basis = 'Zernike'; % basis [Gram-Schmidt, Zernike, Direct-Detection]
 ap_num = 2;        % number of apertures 
 src_num = 2;       % number of sources
@@ -9,6 +9,7 @@ pho_num = 1e3;     % mean photon count for measurement
 [src_coords,est_coords,ap_coords,mode_counts,n_max,rl] = ...
 MultiAperture_ConstellationLocalization(basis,ap_num,src_num,rl_frac,pho_num);
 
+%{
 % compute error
 err = LocalizationError(src_coords, est_coords, rl);
 %}
@@ -35,12 +36,10 @@ end
 
 % survey parameters
 pho_mean = 1e3;     % mean photon count for measurement
-%basis_list = {'Gram-Schmidt','Zernike','Direct-Detection'};
-basis_list = {'Direct-Detection'};
-%ap_num_list = [2,3];
-ap_num_list = [3];
+basis_list = {'Gram-Schmidt','Zernike'};
+ap_num_list = [2,3];
 src_num_list = [2,3];
-rl_frac_list = [1/16, 1/32, 1/64];
+rl_frac_list = linspace(1/64,1/16,10);
 num_trials = 10;
 
 % Statistical Survey
@@ -53,7 +52,7 @@ varNames = ["Basis","# of Apertures","# of Sources","Source Separation (rl)", "#
 T = table('Size',sz,'VariableTypes',varTypes,'VariableNames',varNames);
 %}
 
-k = 301;
+k = 1;
 for m = 1:numel(basis_list)
     for a = ap_num_list
         for s = src_num_list
@@ -81,4 +80,5 @@ for m = 1:numel(basis_list)
 end 
 
  
+
 
