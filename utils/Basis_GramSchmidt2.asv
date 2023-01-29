@@ -4,37 +4,27 @@ function GS_basis_pos_xy = Basis_GramSchmidt2(x,y,Kx,Ky,d2k,GS_basis_mom)
     
     
     % do in batches for memory limits
+    n_modes = size(GS_basis_mom,2);
     n_pts = numel(x);
     batch_size = 200;
-    n_batches = floor(n_pts/batch_size);
-    remainder = rem(n_batches,batch_size);
+    n_batches = ceil(n_pts/batch_size);
+    remainder = rem(n_pts,batch_size);
     
-    b_start = ;
-    b_end = batch_size;
+    b_start = 1:batch_size:n_pts;
+    b_end = batch_size:batch_size:n_pts;
+    b_end = [b_end, b_end(end)+remainder];
     
+    GS_basis_pos_xy = zeros(n_pts,n_modes);
     
-    for k = 0:n_batches-1
+    for k = 1:n_batches
+        b = b_start(k):b_end(k); % batch indices
         
-        if k == n_batches-1
-            batch = b_start:(b_start+remainder);
-        else
-            batch = b_start:b_end;
-        end
-        
-        FT_exp_xy = exp(1i * ( x.*Kx.' + y.*Ky.') );
-        GS_basis_pos_xy = 1/(2*pi) * d2k * FT_exp_xy * GS_basis_mom;
-        
-        % reset start and stop indices
-        b_start = b_end+1;
-        b_end = b_end + batch_size;
+        % manual evaluation of FT at the location (x,y).
+        FT_exp_xy = exp(1i * ( x(b).*Kx.' + y(b).*Ky.') );
+        GS_basis_pos_xy(b,:) = 1/(2*pi) * d2k * FT_exp_xy * GS_basis_mom;
         
     end
-    
-    
-    
-    FT_exp_xy = exp(1i * ( x.*Kx.' + y.*Ky.') );
-    GS_basis_pos_xy = 1/(2*pi) * d2k * FT_exp_xy * GS_basis_mom; 
-    
+        
     
     %{
     pre-vectorization implementation

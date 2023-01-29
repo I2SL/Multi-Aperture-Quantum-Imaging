@@ -43,7 +43,7 @@ ip_dim = 101;
 [X,Y] = meshgrid(rl * linspace(-.5,.5,ip_dim));
 
 % aperture plane discretization
-ap_dim = 101;
+ap_dim = 51;
 [aperture,Kx,Ky] = ApertureConfig(a_kx,a_ky,ap_dim);
 rel_ap = subap_radius / Kx(1,end);                      % ratio of sub-aperture radius to aperture plane half-width
 
@@ -71,9 +71,17 @@ switch basis
         % modal probability function
         prob_fn = @(x,y) ModalProb_GramSchmidt(x,y,X,Y,GS_basis_pos,A_tot);
         %}
-        [nj,mj] = Indices_GramSchmidt(n_max);
+
         [Kx,Ky,d2k,GS_basis_mom] = genGramSchmidtBasis2(n_max,aper_coords,301);
         prob_fn = @(x,y) ModalProb_GramSchmidt2(x,y,Kx,Ky,d2k,GS_basis_mom,A_tot);
+        
+        
+        % visualize the modes
+        [nj,mj] = Indices_GramSchmidt(n_max);
+        GS_basis_pos = reshape(abs(Basis_GramSchmidt2(X(:),Y(:),Kx,Ky,d2k,GS_basis_mom)).^2,[size(X),numel(nj)]);
+        VisualizeModes_GramSchmidt(nj,mj, GS_basis_pos)
+
+        
 
     case 'Zernike'
         

@@ -3,7 +3,7 @@ function GS_basis_pos_xy = Basis_GramSchmidt2(x,y,Kx,Ky,d2k,GS_basis_mom)
     % as this is a fourier transform over a non-uniform point set.
     
     
-    % do in batches for memory limits
+    % Perform manual FT in batches to avoid breaking memory limits
     n_modes = size(GS_basis_mom,2);
     n_pts = numel(x);
     batch_size = 200;
@@ -11,12 +11,13 @@ function GS_basis_pos_xy = Basis_GramSchmidt2(x,y,Kx,Ky,d2k,GS_basis_mom)
     remainder = rem(n_pts,batch_size);
     
     b_start = 1:batch_size:n_pts;
-    b_end = [batch_size:batch_size:n_pts,remainder];
+    b_end = batch_size:batch_size:n_pts;
+    b_end = [b_end, b_end(end)+remainder];
     
     GS_basis_pos_xy = zeros(n_pts,n_modes);
     
     for k = 1:n_batches
-        b = b_start(k):b_end(:); % batch indices
+        b = b_start(k):b_end(k); % batch indices
         
         % manual evaluation of FT at the location (x,y).
         FT_exp_xy = exp(1i * ( x(b).*Kx.' + y(b).*Ky.') );
