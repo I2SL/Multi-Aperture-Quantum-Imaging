@@ -58,22 +58,22 @@ n_max = 3;                                      % max number of n-index modes to
 
 switch basis
     case 'Gram-Schmidt'
-
+        
+        %{
         [poly_coeff,GS_basis_mom,GS_basis_pos] = genGramSchmidtBasis(Kx,Ky,aperture,n_max,ap_dim,ip_dim,rel_ap);
         % ensure the position space modes are properly normalized
         % (an on-axis source should produce probability 1 in the 00 mode)
         GS_normalization = sqrt(A_tot)*abs(Basis_GramSchmidt(0,0,X,Y,GS_basis_pos(:,:,1)));
         GS_basis_pos = GS_basis_pos / GS_normalization;
-        
- 
-        %{
         % visualize the modes
-        [nj,mj] = gramschmidtIndices(n_max);
+        [nj,mj] = Indices_GramSchmidt(n_max);
         VisualizeModes_GramSchmidt(nj,mj, GS_basis_pos)
-        %}
-        
         % modal probability function
         prob_fn = @(x,y) ModalProb_GramSchmidt(x,y,X,Y,GS_basis_pos,A_tot);
+        %}
+        [nj,mj] = Indices_GramSchmidt(n_max);
+        [Kx,Ky,d2k,GS_basis_mom] = genGramSchmidtBasis2(n_max,aper_coords,301);
+        prob_fn = @(x,y) ModalProb_GramSchmidt2(x,y,Kx,Ky,d2k,GS_basis_mom,A_tot);
 
     case 'Zernike'
         
@@ -86,7 +86,12 @@ switch basis
     
     case 'Direct-Detection'
         prob_fn = @(x,y) ModalProb_DirectImaging(x,y,X,Y,a_kx,a_ky);
-
+        
+        % visualize the PSF
+        imagesc(reshape(abs(MultiAperturePSF([X(:),Y(:)],aper_coords)).^2,size(X)));
+        title('Multi-Aperture PSF')
+        xlabel('x [rl]')
+        ylabel('y [rl]')
         
 end
 
@@ -112,13 +117,20 @@ switch basis
         stem(mode_counts);
         title({'Photon Counting Measurement','Gram-Schmidt Basis',['Total Photons: ',num2str(sum(mode_counts))]});
         xlabel('mode index')
+        n_labels = arrayfun(@num2str,nj,'UniformOutput', 0);
+        m_labels = arrayfun(@num2str,mj,'UniformOutput', 0);
+        index_labels = strcat(n_labels,repmat({','},[1,numel(nj)]),m_labels);
+        xticks(1:numel(nj))
+        xticklabels(index_labels)
         ylabel('# photons')
+        
         
     case 'Zernike'
         stem(mode_counts);
         title({'Photon Counting Measurement','FT Zernike Basis',['Total Photons: ',num2str(sum(mode_counts))]});
         xlabel('mode index')
         ylabel('# photons')
+        
     case 'Direct-Detection'
         DD_photons = reshape(mode_counts, ip_dim*[1,1]);
         imagesc(flipud(DD_photons))

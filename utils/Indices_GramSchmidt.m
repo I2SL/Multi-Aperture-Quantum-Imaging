@@ -1,4 +1,4 @@
-function [nj,mj] = gramschmidtIndices(n_max)
+function [nj,mj] = Indices_GramSchmidt(n_max)
     nj = [];
     mj = [];
 

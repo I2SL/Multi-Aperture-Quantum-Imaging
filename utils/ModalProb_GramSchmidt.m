@@ -13,9 +13,8 @@ function p = ModalProb_GramSchmidt(x,y,X,Y,GS_basis_pos,A_tot)
     % correlation function
     correlation_fn = corrFn_GramSchmidt(x,y,X,Y,GS_basis_pos,A_tot); 
     
-    
     %p = abs(correlation_fn).^2 * dx * dy;
     p = abs(correlation_fn).^2;
-    p = [p, max(0,1-sum(p,2))];         % add bucket mode due to truncation
-    p = p ./ sum(p,2);                  % normalize
+    %p = [p, max(0,1-sum(p,2))];         % add bucket mode due to truncation
+    %p = p ./ sum(p,2);                  % normalize
 end
