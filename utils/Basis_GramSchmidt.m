@@ -1,10 +1,13 @@
-function psi_nm = Basis_GramSchmidt(x,y,X,Y,GS_basis_pos)
+function psi_nm = Basis_GramSchmidt(xy_coords,X,Y,GS_basis_pos)
     
     dx = X(1,2) - X(1,1);
     dy = Y(2,1) - Y(1,1);
 
     n_modes = size(GS_basis_pos,3);
     psi_nm = zeros([numel(x),n_modes]);
+    
+    x = xy_coords(:,1);
+    y = xy_coords(:,2);
     
     for i = 1:n_modes
         GS_i = GS_basis_pos(:,:,i);

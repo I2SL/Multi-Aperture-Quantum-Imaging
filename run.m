@@ -2,8 +2,8 @@
 basis = 'Gram-Schmidt'; % basis [Gram-Schmidt, Zernike, Direct-Detection]
 ap_num = 3;        % number of apertures 
 src_num = 2;       % number of sources
-rl_frac = 10/20;   % source spacing (in rayleigh units)
-pho_num = 1e3;     % mean photon count for measurement
+rl_frac = 1/20;   % source spacing (in rayleigh units)
+pho_num = 1e4;     % mean photon count for measurement
 
 
 [src_coords,est_coords,ap_coords,mode_counts,n_max,rl] = ...

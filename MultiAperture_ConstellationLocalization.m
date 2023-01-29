@@ -1,4 +1,4 @@
-function [err,src_coords,est_coords,aper_coords,mode_counts,n_max,rl] = ...
+function [err,src_coords,est_coords,aper_coords,mode_counts,max_order,rl] = ...
         MultiAperture_ConstellationLocalization(basis,ap_num,src_num,rl_frac,n_pho)
 
 %{    
@@ -42,19 +42,21 @@ rl = 2*pi*1.22/max_B;                   % rayleigh length
 ip_dim = 101;
 [X,Y] = meshgrid(rl * linspace(-.5,.5,ip_dim));
 
+%{
 % aperture plane discretization
-ap_dim = 51;
+ap_dim = 101;
 [aperture,Kx,Ky] = ApertureConfig(a_kx,a_ky,ap_dim);
 rel_ap = subap_radius / Kx(1,end);                      % ratio of sub-aperture radius to aperture plane half-width
+%}
 
 % source distribution
-src_coords = rl*rl_frac*genNgon(src_num,0);     % source coordinates
+src_coords = rl*rl_frac*genNgon(src_num,1);     % source coordinates
 s_x = src_coords(:,1); s_y = src_coords(:,2); 
 n_sources = size(src_coords,1);                 % number of sources in the scene
 s_b = ones(n_sources,1)/n_sources;              % source brightnesses
 
 % mode parameters
-n_max = 3;                                      % max number of n-index modes to truncate Hilbert Space at
+max_order = 3;                                      % max number of n-index modes to truncate Hilbert Space at
 
 switch basis
     case 'Gram-Schmidt'
@@ -71,28 +73,51 @@ switch basis
         % modal probability function
         prob_fn = @(x,y) ModalProb_GramSchmidt(x,y,X,Y,GS_basis_pos,A_tot);
         %}
-
-        [Kx,Ky,d2k,GS_basis_mom] = genGramSchmidtBasis2(n_max,aper_coords,301);
-        prob_fn = @(x,y) ModalProb_GramSchmidt2(x,y,Kx,Ky,d2k,GS_basis_mom,A_tot);
         
+        % indices
+        [nj,mj] = Indices_GramSchmidt(max_order);
+        
+        % number of modes
+        num_modes = numel(nj);
+        
+        % Create Gram-Schmidt basis
+        circle_sampling = 301;     % number of k-space samples across each circular hard sub-aperture (total samples is subap_sampling^2)
+        [Kx,Ky,d2k,GS_basis_mom] = genGramSchmidtBasis2(max_order,aper_coords,circle_sampling);
+        GS_basis_pos = Basis_GramSchmidt2(X(:),Y(:),Kx,Ky,d2k,GS_basis_mom);    % basis functions in position space
+        GS_basis_pos = reshape(GS_basis_pos,[size(X),size(GS_basis_pos,2)]);    %
+        
+        % probability function
+        prob_fn = @(x,y) ModalProb_GramSchmidt(x,y,X,Y,GS_basis_pos, A_tot);
         
         % visualize the modes
-        [nj,mj] = Indices_GramSchmidt(n_max);
-        GS_basis_pos = reshape(abs(Basis_GramSchmidt2(X(:),Y(:),Kx,Ky,d2k,GS_basis_mom)).^2,[size(X),numel(nj)]);
         VisualizeModes_GramSchmidt(nj,mj, GS_basis_pos)
-
         
 
     case 'Zernike'
         
+        % indices
+        [nj,mj,vj] = Indices_MixedAperture(max_order,ap_num);
+        
+        % number of modes
+        num_modes = numel(nj);
+        
+        % Create Mixed-Aperture Zernike Basis
         U = dftmtx(ap_num)/sqrt(ap_num);   % a unitary matrix for mixing aperture-local modes
-        [nj,mj,vj] = Indices_MixedAperture(n_max,ap_num);
+        
+        % probability function handle
         prob_fn = @(x,y) ModalProb_MixedAperture([x,y],nj,mj,vj,U,[a_kx,a_ky],A_tot);
         
         % visualize the modes
         VisualizeModes_MixedAperture(nj,mj,vj,X,Y,U,aper_coords);
+        
+
     
     case 'Direct-Detection'
+        
+        % number of modes
+        num_modes = numel(X);
+        
+        % probability function
         prob_fn = @(x,y) ModalProb_DirectImaging(x,y,X,Y,a_kx,a_ky);
         
         % visualize the PSF
@@ -110,13 +135,13 @@ p_s = sum(s_b .* prob_fn(s_x,s_y),1);
 [measurement, mode_counts] = simulateMeasurement(n_pho, nu, p_s);
 
 figure
-imagesc(flipud(aperture))
-colormap('gray')
+scatter(Kx,Ky,'filled');            hold on;
+scatter(0,0,10,'filled','black');   hold off;
+axis 'equal'
 title('Aperture Configuration')
 xlabel('$k_x \, (\delta)$','interpreter','latex')
 ylabel('$k_y \, (\delta)$','interpreter','latex')
 axis off
-axis square
 
 
 figs(1) = figure;
@@ -125,19 +150,27 @@ switch basis
         stem(mode_counts);
         title({'Photon Counting Measurement','Gram-Schmidt Basis',['Total Photons: ',num2str(sum(mode_counts))]});
         xlabel('mode index')
-        n_labels = arrayfun(@num2str,nj,'UniformOutput', 0);
-        m_labels = arrayfun(@num2str,mj,'UniformOutput', 0);
-        index_labels = strcat(n_labels,repmat({','},[1,numel(nj)]),m_labels);
-        xticks(1:numel(nj))
-        xticklabels(index_labels)
         ylabel('# photons')
         
+        n_labels = arrayfun(@num2str,nj,'UniformOutput', 0);
+        m_labels = arrayfun(@num2str,mj,'UniformOutput', 0);
+        index_labels = strcat(n_labels,repmat({','},[1,num_modes]),m_labels);
+        xticks(1:num_modes)
+        xticklabels(index_labels)
+
         
     case 'Zernike'
         stem(mode_counts);
         title({'Photon Counting Measurement','FT Zernike Basis',['Total Photons: ',num2str(sum(mode_counts))]});
         xlabel('mode index')
         ylabel('# photons')
+        n_labels = arrayfun(@num2str,nj,'UniformOutput', 0);
+        m_labels = arrayfun(@num2str,mj,'UniformOutput', 0);
+        v_labels = arrayfun(@num2str,vj,'UniformOutput', 0);
+        index_labels = strcat(n_labels,repmat({','},[1,num_modes]),m_labels,repmat({','},[1,num_modes]),v_labels);
+        xticks(1:num_modes)
+        xticklabels(index_labels)
+
         
     case 'Direct-Detection'
         DD_photons = reshape(mode_counts, ip_dim*[1,1]);

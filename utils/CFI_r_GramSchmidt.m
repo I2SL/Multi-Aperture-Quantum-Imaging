@@ -1,5 +1,5 @@
-function CFI_r_nm = CFI_r_GramSchmidt(xy_coords,X,Y,GS_basis_pos,A_tot,s_b)
-    x=xy_coords(:,1); y = xy_coords(:,2);
+function CFI_r_nm = CFI_r_GramSchmidt(alpha_vec,X,Y,GS_basis_pos,A_tot,s_b)
+    x=alpha_vec(:,1); y = alpha_vec(:,2);
     
     % GS correlation function
     p_nm = sum(s_b .* ModalProb_GramSchmidt(x,y,X,Y,GS_basis_pos,A_tot),1);

@@ -1,11 +1,11 @@
-function [Kx,Ky,d2k,GS_basis_mom] = genGramSchmidtBasis2(n_max,aper_coords,circle_sampling)
+function [Kx,Ky,d2k,GS_basis_mom] = genGramSchmidtBasis2(max_order,aper_coords,circle_sampling)
 %function [Kx,Ky,GS_basis_mom] = genGramSchmidtBasis2(n_max,aper_radii,circle_sampling)
 % Generates the 2D PSF-Adapted Gram-Schmidt basis for any aperture function
 % Kx,Ky - coordinate pairs in K-space over the aperture support (in units of sub-aperture radius)
 % A - The normalized aperture function defined over Kx Ky
 % n_max - max polynomial order
 
-num_modes = (n_max+1)^2;
+num_modes = (max_order+1)^2;
 num_apertures = size(aper_coords,1);
 
 % bounding box for a sub-aperture
@@ -41,8 +41,8 @@ GS_basis_mom = zeros(num_supcrd,num_modes);     % discretized GS mode matrix
 %poly_coeff = zeros(n_max+1,n_max+1,num_modes);  % array of P_nm(ikx ,iky) expansion polynomial coefficients for each basis function
 
 mode = 1;
-for n = 0:n_max
-    for m = 0:n_max
+for n = 0:max_order
+    for m = 0:max_order
     
         % moments for candidate polynomial
         ikxn = (1i*Kx).^n;
