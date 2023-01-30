@@ -2,6 +2,7 @@
 % source problem using 2 apertures.
 
 clear
+addpath('utils/')
 
 % imaging system parameters
 subap_radius = 0.5; % radius of sub-apertures [units of length]
@@ -48,12 +49,16 @@ aper_coords = x(i)*subap_radius*[0,1;0,-1];         % aperture coordinates
 B = pdist(aper_coords);                             % baseline lengths
 max_B = max([1,B]);                                 % max baseline
 
+% aperture plane discretization
+subap_sampling = 301;     % number of k-space samples across each circular hard sub-aperture (total samples is subap_sampling^2)
+[kx,ky,d2k] = ApertureKxKy(aper_coords,subap_sampling); 
+
 
 % Modal contribution to CFI for mixed Zernike modes
 CFI_zern(i,:) = CFI_r_MixedAperture(alpha_vec,n1,m1,v1,U,aper_coords,A_tot,s_b);
 
 % Modal contribution to CFI for Gram-Schmidt modes
-[kx,ky,d2k,GS_basis_mom] = genGramSchmidtBasis_mom(n_max,aper_coords,301); % generate GS basis
+GS_basis_mom = genGramSchmidtBasis_mom(n_max,kx,ky,d2k); % generate GS basis
 CFI_gs(i,:) = CFI_r_GramSchmidt(alpha_vec,kx,ky,d2k,GS_basis_mom,A_tot,s_b);
 end
 

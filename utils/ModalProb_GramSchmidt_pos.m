@@ -1,4 +1,4 @@
-function p = ModalProb_GramSchmidt_pos(x,y,X,Y,GS_basis_pos,A_tot)
+function p = ModalProb_GramSchmidt_pos(xy_coords,X,Y,GS_basis_pos,A_tot)
     % Computes the modal probability of detecting a photon in the
     % Gram-Schmidt basis for sources positioned at [x,y].
     %
@@ -8,7 +8,7 @@ function p = ModalProb_GramSchmidt_pos(x,y,X,Y,GS_basis_pos,A_tot)
     % A_tot - total area of the aperture
     
     % correlation function
-    correlation_fn = corrFn_GramSchmidt_pos(x,y,X,Y,GS_basis_pos,A_tot); 
+    correlation_fn = corrFn_GramSchmidt_pos(xy_coords,X,Y,GS_basis_pos,A_tot); 
     
     p = abs(correlation_fn).^2;
 end
