@@ -6,6 +6,4 @@ function p = ModalProb_MixedAperture(xy_coords,n,m,v,U,aper_coords,A_tot)
     correlation_fn = corrFn_MixedAperture(xy_coords,n,m,v,U,aper_coords,A_tot);
     
     p = abs(correlation_fn).^2;    % probability is norm squared of correlation function
-    %p = [p, max(0,1-sum(p,2))];         % add bucket mode due to truncation
-    %p = p ./ sum(p,2);                  % normalize
 end

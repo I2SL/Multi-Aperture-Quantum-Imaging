@@ -1,18 +1,22 @@
-function CFI_r_nm = CFI_r_GramSchmidt(alpha_vec,X,Y,GS_basis_pos,A_tot,s_b)
-    x=alpha_vec(:,1); y = alpha_vec(:,2);
+function CFI_r_nm = CFI_r_GramSchmidt(alpha_vec,Kx,Ky,d2k,GS_basis_mom,A_tot,s_b)
     
-    % GS correlation function
-    p_nm = sum(s_b .* ModalProb_GramSchmidt(x,y,X,Y,GS_basis_pos,A_tot),1);
+    % 2-source coordinates
+    alpha2_vec = [alpha_vec;-alpha_vec];
     
-    % Take the numerical derivative of the probability wrt to the radial coordinate
-    [theta,~] = cart2pol(x,y);
-    dr = sqrt(2)*abs(X(1,2)-X(1,1));
-    dx = dr*cos(theta);
-    dy = dr*sin(theta);
-    dr_p_nm_s = (ModalProb_GramSchmidt(x+dx,y+dy,X,Y,GS_basis_pos,A_tot) - p_nm) / dr;
-    dr_p_nm = sum(s_b.*dr_p_nm_s,1);
     
-    % the CFI
-    CFI_r_nm = (dr_p_nm).^2 ./ p_nm;
+    % correlation function
+    corr_fn = corrFn_GramSchmidt_mom(alpha2_vec,Kx,Ky,d2k,GS_basis_mom,A_tot);
+    
+    % radial derivative of correlation function
+    dr_corr_fn = dr_corrFn_GramSchmidt(alpha2_vec,Kx,Ky,d2k,GS_basis_mom,A_tot);
+
+    % probability of GS mode nm 
+    P_nm = s_b.' * abs(corr_fn).^2;
+    
+    % radial derivative of the probability 
+    dr_P_nm = 2 * s_b.' * real( conj(corr_fn) .* dr_corr_fn );
+    
+    % 2-point source separation CFI by mode
+    CFI_r_nm = (dr_P_nm).^2 ./ P_nm;
     
 end

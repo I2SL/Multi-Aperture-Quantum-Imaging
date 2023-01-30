@@ -13,47 +13,39 @@ pho_num = 1e3;          % mean photon count for measurement
 close all
 addpath('utils/');
 
-
 % multi-aperture static measurement estimation
 nu = 1;             % flux attenuation 
 
 % imaging system parameters
-subap_radius = 0.5; % radius of sub-apertures [units of length]
+subap_radius = 1; % radius of sub-apertures [units of length]
 
 % make the sub-aperture length the reference unit
 ref_unit = subap_radius;
 
 % rescale everything to the reference unit
-subap_radius = subap_radius/ref_unit;   % radius of sub-apertures  [reference unit]
-A_sub = pi*subap_radius^2;              % subaperture collection area
+subap_radius = subap_radius/ref_unit;   % radius of sub-apertures  in reference unit: [u]
+A_sub = pi*subap_radius^2;              % subaperture collection area [u^2]
 
 % multi-aperture parameters
-aper_coords = 4*subap_radius*genNgon(ap_num,0);      % aperture coordinates [reference units]
-a_kx = aper_coords(:,1); a_ky = aper_coords(:,2);
-A_tot = ap_num * A_sub;            % total collection area of the multi-aperture system
-
-B = pdist(aper_coords);                   % baseline lengths
-max_B = max([1,B]);                       % max baseline
+aper_coords = 4*subap_radius*genNgon(ap_num,0);      % aperture coordinates [u]
+A_tot = ap_num * A_sub;                              % total collection area of the multi-aperture system [u^2]
+B = pdist(aper_coords);                              % baseline lengths [u]
+max_B = max([1,B]);                                  % max baseline [u]
 
 % rayleigh length
-rl = 2*pi*1.22/max_B;                   % rayleigh length
+rl_1ap = 2*pi*1.22;
+rl = rl_1ap/max_B;                                    % rayleigh length [rad/u] 
 
 % image plane discretization  
-ip_dim = 101;
-[X,Y] = meshgrid(rl * linspace(-.5,.5,ip_dim));
-
-%{
-% aperture plane discretization
-ap_dim = 101;
-[aperture,Kx,Ky] = ApertureConfig(a_kx,a_ky,ap_dim);
-rel_ap = subap_radius / Kx(1,end);                      % ratio of sub-aperture radius to aperture plane half-width
-%}
+ip_dim = 101;                                         % image plane pixels along each axis
+[X,Y] = meshgrid(rl * linspace(-.5,.5,ip_dim));       % image plane coordinates [rad/u]
+    
 
 % source distribution
-src_coords = rl*rl_frac*genNgon(src_num,1);     % source coordinates
-s_x = src_coords(:,1); s_y = src_coords(:,2); 
+src_coords = rl*rl_frac*genNgon(src_num,1);           % source coordinates [rad/u]
 n_sources = size(src_coords,1);                 % number of sources in the scene
-s_b = ones(n_sources,1)/n_sources;              % source brightnesses
+s_b = ones(n_sources,1)/n_sources;              % relative source brightnesses
+s_x = src_coords(:,1); s_y = src_coords(:,2); 
 
 % mode parameters
 max_order = 3;                                      % max number of n-index modes to truncate Hilbert Space at
@@ -61,18 +53,6 @@ max_order = 3;                                      % max number of n-index mode
 switch basis
     case 'Gram-Schmidt'
         
-        %{
-        [poly_coeff,GS_basis_mom,GS_basis_pos] = genGramSchmidtBasis(Kx,Ky,aperture,n_max,ap_dim,ip_dim,rel_ap);
-        % ensure the position space modes are properly normalized
-        % (an on-axis source should produce probability 1 in the 00 mode)
-        GS_normalization = sqrt(A_tot)*abs(Basis_GramSchmidt(0,0,X,Y,GS_basis_pos(:,:,1)));
-        GS_basis_pos = GS_basis_pos / GS_normalization;
-        % visualize the modes
-        [nj,mj] = Indices_GramSchmidt(n_max);
-        VisualizeModes_GramSchmidt(nj,mj, GS_basis_pos)
-        % modal probability function
-        prob_fn = @(x,y) ModalProb_GramSchmidt(x,y,X,Y,GS_basis_pos,A_tot);
-        %}
         
         % indices
         [nj,mj] = Indices_GramSchmidt(max_order);
@@ -81,13 +61,13 @@ switch basis
         num_modes = numel(nj);
         
         % Create Gram-Schmidt basis
-        circle_sampling = 301;     % number of k-space samples across each circular hard sub-aperture (total samples is subap_sampling^2)
-        [Kx,Ky,d2k,GS_basis_mom] = genGramSchmidtBasis2(max_order,aper_coords,circle_sampling);
-        GS_basis_pos = Basis_GramSchmidt2(X(:),Y(:),Kx,Ky,d2k,GS_basis_mom);    % basis functions in position space
-        GS_basis_pos = reshape(GS_basis_pos,[size(X),size(GS_basis_pos,2)]);    %
+        subap_sampling = 301;     % number of k-space samples across each circular hard sub-aperture (total samples is subap_sampling^2)
+        [kx,ky,d2k,GS_basis_mom] = genGramSchmidtBasis_mom(max_order,aper_coords,subap_sampling);
+        GS_basis_pos = Basis_GramSchmidt_mom([X(:),Y(:)],kx,ky,d2k,GS_basis_mom);    % basis functions in position space
         
         % probability function
-        prob_fn = @(x,y) ModalProb_GramSchmidt(x,y,X,Y,GS_basis_pos, A_tot);
+        GS_basis_pos = reshape(GS_basis_pos,[size(X),num_modes]);                    % 2D basis matrix stack
+        prob_fn = @(xq,yq) ModalProb_GramSchmidt_pos([xq,yq],X,Y,GS_basis_pos,A_tot);
         
         % visualize the modes
         VisualizeModes_GramSchmidt(nj,mj, GS_basis_pos)
@@ -105,7 +85,7 @@ switch basis
         U = dftmtx(ap_num)/sqrt(ap_num);   % a unitary matrix for mixing aperture-local modes
         
         % probability function handle
-        prob_fn = @(x,y) ModalProb_MixedAperture([x,y],nj,mj,vj,U,[a_kx,a_ky],A_tot);
+        prob_fn = @(xq,yq) ModalProb_MixedAperture([xq,yq],nj,mj,vj,U,aper_coords,A_tot);
         
         % visualize the modes
         VisualizeModes_MixedAperture(nj,mj,vj,X,Y,U,aper_coords);
@@ -118,7 +98,7 @@ switch basis
         num_modes = numel(X);
         
         % probability function
-        prob_fn = @(x,y) ModalProb_DirectImaging(x,y,X,Y,a_kx,a_ky);
+        prob_fn = @(xq,yq) ModalProb_DirectImaging([xq,yq],X,Y,aper_coords);
         
         % visualize the PSF
         imagesc(reshape(abs(MultiAperturePSF([X(:),Y(:)],aper_coords)).^2,size(X)));
@@ -135,7 +115,7 @@ p_s = sum(s_b .* prob_fn(s_x,s_y),1);
 [measurement, mode_counts] = simulateMeasurement(n_pho, nu, p_s);
 
 figure
-scatter(Kx,Ky,'filled');            hold on;
+scatter(kx,ky,'filled');            hold on;
 scatter(0,0,10,'filled','black');   hold off;
 axis 'equal'
 title('Aperture Configuration')
@@ -305,6 +285,7 @@ while ( ~isempty(find(s_x-s_x_old, 1)) || ~isempty(find(s_y-s_y_old, 1))) && cou
     end 
     
     %{
+    % debugging
     % visualization of objective function for MLE estimators
     peaked_Q = zeros([size(X),num_sources]);
     for i = 1:num_sources
@@ -343,8 +324,6 @@ function idx_sxy = getMLESourceIndices(Q_2D)
     for i = 1:size(Q_2D,3)
         Q_i = Q_2D(:,:,i); 
         [s_iy,s_ix] =  find( Q_i == max(Q_i(:)));
-        %s_ixy = round(removeClose([s_ix,s_iy],5)); 
-        %s_ix = s_ixy(:,1); s_iy = s_ixy(:,2);
         hi = sub2ind(dim_2D,s_iy,s_ix);
         H{i} = hi;
     end
@@ -363,13 +342,9 @@ function idx_sxy = getMLESourceIndices(Q_2D)
     end
     [~,k] = max(spreads);
     idx_sxy = Z(k,:)';
-
-    
-    % alternatively we find the candidate constellation using a tree search
-    % that chooses the first candidate exhibiting no overlap
-    % idx_sxy = treepath(H,[])';
     
     %{
+    % debugging
     figure
     for i = 1:size(Q_2D,3)
         [s_iy,s_ix] = ind2sub(dim_2D,H{i});
@@ -392,6 +367,11 @@ function idx_sxy = getMLESourceIndices(Q_2D)
     xlim([-.5,.5])
     ylim([-.5,.5])
     title('Selected Source Locations')
+    
+    
+    % alternatively we find the candidate constellation using a tree search
+    % that chooses the first candidate exhibiting no overlap
+    % idx_sxy = treepath(H,[])';
     %}
     
 end

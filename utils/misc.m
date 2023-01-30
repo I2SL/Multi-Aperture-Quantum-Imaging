@@ -1,4 +1,27 @@
 x=0;
+
+%{
+% aperture plane discretization
+ap_dim = 101;
+[aperture,Kx,Ky] = ApertureConfig(a_kx,a_ky,ap_dim);
+rel_ap = subap_radius / Kx(1,end);                      % ratio of sub-aperture radius to aperture plane half-width
+%}
+
+ %{
+[poly_coeff,GS_basis_mom,GS_basis_pos] = genGramSchmidtBasis(Kx,Ky,aperture,n_max,ap_dim,ip_dim,rel_ap);
+% ensure the position space modes are properly normalized
+% (an on-axis source should produce probability 1 in the 00 mode)
+GS_normalization = sqrt(A_tot)*abs(Basis_GramSchmidt(0,0,X,Y,GS_basis_pos(:,:,1)));
+GS_basis_pos = GS_basis_pos / GS_normalization;
+% visualize the modes
+[nj,mj] = Indices_GramSchmidt(n_max);
+VisualizeModes_GramSchmidt(nj,mj, GS_basis_pos)
+% modal probability function
+prob_fn = @(x,y) ModalProb_GramSchmidt(x,y,X,Y,GS_basis_pos,A_tot);
+%}
+
+
+
 %% Miscellaneous functions (to delete)
 function xy_out = removeClose(xy_in,dist)
     % removes coordinates in the list xy_in that are less than dist from

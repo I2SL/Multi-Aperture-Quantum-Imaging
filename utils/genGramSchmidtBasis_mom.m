@@ -1,4 +1,4 @@
-function [Kx,Ky,d2k,GS_basis_mom] = genGramSchmidtBasis2(max_order,aper_coords,circle_sampling)
+function [Kx,Ky,d2k,GS_basis_mom] = genGramSchmidtBasis_mom(max_order,aper_coords,circle_sampling)
 %function [Kx,Ky,GS_basis_mom] = genGramSchmidtBasis2(n_max,aper_radii,circle_sampling)
 % Generates the 2D PSF-Adapted Gram-Schmidt basis for any aperture function
 % Kx,Ky - coordinate pairs in K-space over the aperture support (in units of sub-aperture radius)
