@@ -1,9 +1,19 @@
+close all
+addpath('utils/')
 
+
+
+
+% function arguments
 basis = 'Direct-Detection'; % basis [Gram-Schmidt, Zernike, Direct-Detection]
-ap_num = 7;        % number of apertures 
-src_num = 2;       % number of sources
-rl_frac = 1/20;   % source spacing (in rayleigh units)
-pho_num = 1e4;     % mean photon count for measurement
+subap_radius = 1.5;         % sub-aperture radius   (units : length)
+aper_coords = Golay9(30/2); % aperture position     (units : length)
+src_coords = genNGon(2);    % source coordinates    (units : rl) - fractional rayleigh units -> src_coord domain for x and y is [-0.5,0.5];
+src_brites = ones(size(src_coords,1))/size(src_coords,1);  % relative source brightnesses
+n_pho = 1e4;                % mean photon number
+subap_sampling = 301;       % sub-aperure samples per dimension
+implane_sampling = 201;     % image-plane samples per dimension
+max_order = 5;              % max modal order
 
 
 [src_coords,est_coords,ap_coords,mode_counts,n_max,rl] = ...

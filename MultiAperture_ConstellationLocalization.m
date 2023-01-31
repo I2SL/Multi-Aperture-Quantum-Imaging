@@ -1,15 +1,15 @@
 function [err,src_coords,est_coords,aper_coords,mode_counts,max_order,rl] = ...
         MultiAperture_ConstellationLocalization(basis,ap_num,src_num,rl_frac,n_pho)
-
+    
+    % static measurement estimation of point-source constellations with multi-aperture systems
+    
 
 close all
 addpath('utils/')
 
-% multi-aperture static measurement estimation
-nu = 1;             % flux attenuation 
 
 % imaging system parameters
-subap_radius = 1; % radius of sub-apertures [units of length]
+subap_radius = 1.5; % radius of sub-apertures [units of length]
 
 % make the sub-aperture length the reference unit
 ref_unit = subap_radius;
@@ -37,7 +37,7 @@ subap_sampling = 301;     % number of k-space samples across each circular hard 
 [Kx,Ky,d2k] = ApertureKxKy(aper_coords,subap_sampling); 
 
 % source distribution
-src_coords = rl*rl_frac*genNgon(src_num,1);           % source coordinates [rad/u]
+src_coords = rl*rl_frac*genNgon(src_num,1);     % source coordinates [rad/u]
 n_sources = size(src_coords,1);                 % number of sources in the scene
 s_b = ones(n_sources,1)/n_sources;              % relative source brightnesses
 s_x = src_coords(:,1); s_y = src_coords(:,2); 
@@ -101,7 +101,7 @@ end
 p_s = sum(s_b .* prob_fn(s_x,s_y),1);
 
 % simulate the measurement
-[measurement, mode_counts] = simulateMeasurement(n_pho, nu, p_s);
+[measurement, mode_counts] = simulateMeasurement(n_pho, p_s);
 
 figure
 scatter(Kx,Ky,'filled');            hold on;
@@ -365,8 +365,8 @@ function idx_sxy = getMLESourceIndices(Q_2D)
     
 end
 
-function [measurement,mode_count] = simulateMeasurement(n_pho,nu,p)
-    N = poissrnd(n_pho*nu); % number of photons collected
+function [measurement,mode_count] = simulateMeasurement(n_pho)
+    N = poissrnd(n_pho); % number of photons collected
     
     % randomly assign modal bin to each photon according to PMF
     modes = 1:numel(p);

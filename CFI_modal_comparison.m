@@ -102,7 +102,7 @@ subplot(1,2,2)
 bar3(x,CFI_gs(:,ib2))
 axis 'square'
 title({'CFI by Mode','Gram-Schmidt PAD Modes'},'interpreter','latex')
-xlabel('Mixed Local Mode Index $(n,m)$','interpreter','latex')
+xlabel('GS Mode Index $(n_x,m_y)$','interpreter','latex')
 ylabel('Aperture Half-Separation [$\delta$ : subaperture radius]','interpreter','latex')
 zlabel('Source Half-Separation CFI by Mode $[\mathcal{J}_{\alpha}]_{n,m}$','interpreter','latex')
 xticklabels({'(0,0)','(0,1)','(0,2)','(0,3)'})
