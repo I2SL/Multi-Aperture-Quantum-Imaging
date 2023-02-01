@@ -17,8 +17,8 @@ function [est_scene,mode_counts,rl,err] = ...
 ref_unit = subap_radius;                % [u]
 
 % (non-dimensionalize) rescale aperture-plane coordinates to the reference unit
-subap_radius = subap_radius/ref_unit;   % radius of sub-apertures  [u]
-aper_coords = aper_coords/ref_unit;     % aperture coordinates [u]
+subap_radius = subap_radius/ref_unit;   % radius of reference sub-apertures [u]
+aper_coords = aper_coords/ref_unit;     % sub-aperture coordinates [u]
 
 % multi-aperture parameters
 ap_num = size(aper_coords,1);           % number of sub-apertures
@@ -102,10 +102,14 @@ p = sum(s_b .* prob_fn(s_x,s_y),1);
 
 % find MLE of scene parameters given the measurement
 [s_b_trc, s_x_trc, s_y_trc, count] = EM(measurement,num_sources,prob_fn,X,Y,rl,EM_max);
+% intermediate scene parameter estimates
+s_b_im = s_b_trc(:,1:count-1); s_x_im = s_x_trc(:,1:count-1); s_y_im = s_y_trc(:,1:count-1);
+% final scene parameter estimates
 s_b_mle = s_b_trc(:,end); s_x_mle = s_x_trc(:,end); s_y_mle = s_y_trc(:,end);
+
 est_coords = [s_x_mle,s_y_mle];
 est_brites = s_b_mle;
-est_scene = [est_coord/rl, est_brites];
+est_scene = [est_coords/rl, est_brites];
 
 % compute the localization error
 err = LocalizationError(src_coords, est_coords, rl);
@@ -114,8 +118,8 @@ err = LocalizationError(src_coords, est_coords, rl);
 if visualize
     
 	% APERTURE
-    figs(3) = figure;
-    scatter(Kx,Ky,'filled');            hold on;
+    figs(1) = figure;
+    scatter(Kx,Ky,'filled','blue');            hold on;
     scatter(0,0,10,'filled','black');   hold off;
     axis 'equal'
     title('Aperture Configuration')
@@ -123,7 +127,7 @@ if visualize
     ylabel('$k_y \, [\delta]$','interpreter','latex')
     
     % MODES
-    figs(4) = figure;
+    figs(2) = figure;
     switch basis
         case 'Gram-Schmidt'
             % visualize the GS modes
@@ -140,7 +144,7 @@ if visualize
            
     
     % MEASUREMENT
-    figs(1) = figure;
+    figs(3) = figure;
     switch basis
         case 'Gram-Schmidt'
             stem(mode_counts);
@@ -180,49 +184,25 @@ if visualize
     end  
 
     % ESTIMATE
-    figs(2) = figure;
+    figs(4) = figure;
     % plot ground truth
     scatter(s_x/rl,s_y/rl,'filled','black'); hold on;
     % plot the intermediate estimates
-    if count > 1
-        s_x_im = s_x_mle(:,1:count-1); s_y_im = s_y_mle(:,1:count-1); 
+    if count > 1 
         scatter(s_x_im/rl,s_y_im/rl)
     end
     % plot the final constellation estimate
-    scatter(s_x_mle(:,end)/rl,s_y_mle(:,end)/rl,'filled','red')
+    scatter(s_x_mle/rl,s_y_mle/rl,'filled','red')
     hold off
     title({'Expectation Maximization',[num2str(ap_num),'-aperture ', basis]})
     xlim([min(X(:)),max(X(:))]); xlabel('x (rl)');
     ylim([min(Y(:)),max(Y(:))]); ylabel('y (rl)');
     xticks(linspace(min(X(:)),max(X(:)),7));
     yticks(linspace(min(Y(:)),max(Y(:)),7));
-    names = cell(1,count+2);
+    names = cell(1,count+1);
     names(:) = {''}; names(1) = {'Ground Truth'}; names(end) = {'EM Estimate'};
     legend(names)
-    axis square
-    
-    % save outputs
-    save_dir = fullfile(basis,[num2str(ap_num),'-aperture'],[num2str(src_num),'-src'],[num2str(rl_frac),'rl']);
-    mkdir(save_dir)
-
-    meas_file = fullfile(save_dir,'measurement.png');
-    est_file = fullfile(save_dir,'estimate.png');
-    fig_file = fullfile(save_dir,'figures.fig');
-    pst_cnt = 1;
-    while isfile(meas_file) || isfile(est_file) || isfile(fig_file)
-        meas_file = fullfile(save_dir,['measurement',num2str(pst_cnt),'.png']);
-        est_file =  fullfile(save_dir,['estimate',num2str(pst_cnt),'.png']);
-        fig_file = fullfile(save_dir,['figures',num2str(pst_cnt),'.fig']);
-        pst_cnt = pst_cnt + 1;
-    end
-
-    % save figures
-    savefig(figs,fig_file)
-
-    % save images
-    saveas(figs(1),meas_file);
-    saveas(figs(2),est_file);
-    
+    axis square   
     
 end
 
@@ -384,7 +364,7 @@ function idx_sxy = getMLESourceIndices(Q_2D)
     
 end
 
-function [measurement,mode_count] = simulateMeasurement(n_pho)
+function [measurement,mode_count] = simulateMeasurement(n_pho,p)
     N = poissrnd(n_pho); % number of photons collected
     
     % randomly assign modal bin to each photon according to PMF
