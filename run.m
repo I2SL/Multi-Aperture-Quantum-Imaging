@@ -1,6 +1,9 @@
 clear
 addpath('utils/')
 
+% survey trials per configuration
+trials = 30;
+
 % setup apertures
 D = 30;     % multi-aperture effective diameter [length]
 R = D/2;    % multi-aperture effective radius   [length]
@@ -14,7 +17,7 @@ aper_coords = {ap2,ap3,ap9,golay9};
 
 % data structure for organizing survey results
 DS = struct();
-DS.trials = 30;
+DS.trials = trials;
 DS.img_samp = 101;
 DS.subap_samp = 101;
 DS.subap_radius = r;
@@ -87,7 +90,7 @@ for b = 1:numel(DS.basis)
                          
                         data(t,:) = {b,p,a,n,m,scene,est_scene,mode_counts,rl,err,config_index};    
                         
-                        disp(['Trials Completed: ',num2str(t),'/',num2str(DS.trials)])
+                        disp(['Trials Completed: ',num2str(t),'/',num2str(trials)])
                     end
                     
                     DS.data(((config_index-1)*DS.trials+1):(config_index*DS.trials),:) = data;
