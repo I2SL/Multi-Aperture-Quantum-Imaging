@@ -1,4 +1,4 @@
-
+clear
 addpath('utils/')
 
 % setup apertures
@@ -22,9 +22,9 @@ synth_data.effap_radius = R;
 synth_data.EM_max = 20;
 synth_data.max_order = 5;
 synth_data.num_pho = [1e3,5e3,1e4,2e4];
-synth_data.basis = {'Zernike','Direct-Detection'};
-synth_data.min_sep = linspace(1/100, 1/4, 10); % fractional rayleigh units
-synth_data.aper_coords = aper_coords;          % [length]
+synth_data.basis = {'Gram-Schmidt','Zernike','Direct-Detection'};
+synth_data.min_sep = 2.^(linspace(-6,-3,8)); % fractional rayleigh units
+synth_data.aper_coords = aper_coords;        % [length]
 synth_data.num_src = [2,3];
 synth_data.data = cell({});
 
@@ -56,7 +56,7 @@ for b = 1:numel(synth_data.basis)
                     is = synth_data.img_samp;                % image-plane samples along each axis  --> Image plane for source position estimates has dimensions [img_samp,img_samp]
                     em = synth_data.EM_max;                  % max number of EM iterations          [integer]
                     vs = visualize;                          % visualization trigger                [boolean]
-                    parfor t = 1:synth_data.trials
+                    for t = 1:synth_data.trials
                         
                         
                         % run reconstruction 

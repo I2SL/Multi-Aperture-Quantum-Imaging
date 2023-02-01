@@ -22,8 +22,8 @@ for j = 1:num_apertures
     kx_j = kx(in_j);
     ky_j = ky(in_j);
     
-    Kx = [Kx, kx_j + aper_coords(j,1)];
-    Ky = [Ky, ky_j + aper_coords(j,2)];
+    Kx = [Kx; kx_j + aper_coords(j,1)];
+    Ky = [Ky; ky_j + aper_coords(j,2)];
 
 end
 
