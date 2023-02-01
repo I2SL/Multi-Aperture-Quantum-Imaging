@@ -10,6 +10,6 @@
 
 module load matlab
 
-export MATLAB_PREFDIR=$(mktemp -d $SLURM_JOBTMP/matlab-XXXX)
-
 matlab -nodisplay -nosplash run.m
+
+export MATLAB_PREFDIR=$(mktemp -d $SLURM_JOBTMP/matlab-XXXX)
