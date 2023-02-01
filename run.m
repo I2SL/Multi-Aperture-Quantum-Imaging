@@ -30,7 +30,7 @@ DS.data = cell({});
 
 total_configs = numel(DS.basis)*numel(DS.num_pho)*numel(DS.aper_coords)*numel(DS.num_src)*numel(DS.min_sep);
 
-
+parpool(DS.trials)
 
 % Run parameter scans using matlab's Parallel Computing Toolbox
 visualize = 0;          % visualization trigger
