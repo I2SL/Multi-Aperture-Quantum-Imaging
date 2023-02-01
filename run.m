@@ -125,7 +125,7 @@ end
 
 % Localization Error v Rayleigh separation (for all modal base and photon
 % counts
-load 'synth_data.mat'
+%load 'synth_data.mat'
 
 
 
