@@ -14,7 +14,7 @@ aper_coords = {ap2,ap3,ap9,golay9};
 
 % structure for organizing data survey
 synth_data = struct();
-synth_data.trials = 50;
+synth_data.trials = 30;
 synth_data.img_samp = 201;
 synth_data.subap_samp = 201;
 synth_data.subap_radius = r;
