@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --account=ashoka
-#SBATCH --standard
+#SBATCH --partition=standard
 #SBATCH --time=48:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=30
