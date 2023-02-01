@@ -15,8 +15,8 @@ aper_coords = {ap2,ap3,ap9,golay9};
 % data structure for organizing survey results
 DS = struct();
 DS.trials = 30;
-DS.img_samp = 201;
-DS.subap_samp = 201;
+DS.img_samp = 101;
+DS.subap_samp = 101;
 DS.subap_radius = r;
 DS.effap_radius = R;
 DS.EM_max = 20;
@@ -87,7 +87,7 @@ for b = 1:numel(DS.basis)
                          
                         data(t,:) = {b,p,a,n,m,scene,est_scene,mode_counts,rl,err,config_index};    
                         
-                        disp(['Trials Completed: ',num2str(t),'/',num2str(numel(DS.trials))])
+                        disp(['Trials Completed: ',num2str(t),'/',num2str(DS.trials)])
                     end
                     
                     DS.data(((config_index-1)*DS.trials+1):(config_index*DS.trials),:) = data;

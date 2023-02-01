@@ -47,7 +47,7 @@ s_b = scene(:,3);                        % relative source brightnesses
 % make sure min source separation is greater than the resolution of the image plane
 min_sep = min(pdist(src_coords));
 dx = X(1,2) - X(1,1);
-if min_sep < 2*dx
+if min_sep < dx
     warning('Image plane discretization is coarser than minimum source separation')
 end
 
