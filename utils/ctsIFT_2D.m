@@ -35,16 +35,28 @@ function f = ctsIFT_2D(x,y,kx,ky,d2k,F_tilde)
     b_end = [batch_size:batch_size:n_pts,batch_size*(n_batches-1)+remainder];
     
     num_fs = size(F_tilde,2);
+    
     f = zeros(n_pts,num_fs);
+    
+    % exploit GPU
+    if gpuDeviceCount("available") > 0
+        f = gpuArray(f);
+        kx = gpuArray(kx);
+        ky = gpuArray(ky);
+        x = gpuArray(x);
+        y = gpuArray(y);
+    end
 
     for i = 1:n_batches
         b = b_start(i):b_end(i); % batch indices
 
         % manual evaluation of FT at the location (x,y).
         FT_exp_xy = exp(1i * ( x(b).*kx.' + y(b).*ky.') );
-        f(b,:) = 1/(2*pi) * d2k * FT_exp_xy * F_tilde;
+        f(b,:) = FT_exp_xy * F_tilde;
         
     end
+    
+    f = gather(f) * 1/(2*pi) * d2k;
 
 end
 

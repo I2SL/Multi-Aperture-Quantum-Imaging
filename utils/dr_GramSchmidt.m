@@ -22,14 +22,26 @@ function dr_Gamma_pos_xy = dr_GramSchmidt(xy_coords,Kx,Ky,d2k,GS_basis_mom)
     
     dr_Gamma_pos_xy = zeros(n_pts, n_modes);
     
+    
+    % exploit GPU
+    if gpuDeviceCount("available") > 0
+        dr_gamma_pos_xy = gpuArray(dr_Gamma_pos_xy);
+        kx = gpuArray(Kx);
+        ky = gpuArray(Ky);
+        x = gpuArray(x);
+        y = gpuArray(y);
+    end
+
+    
     for  k = 1:n_batches
         b = b_start(k):b_end(k); % batch indices
         
         % evaluation of d/dr FT at the location (x,y)
         FT_exp_xy = exp(1i * ( x(b).*Kx.' + y(b).*Ky.') );
         dr_FT_exp_xy = 1i * ( cos(theta).*Kx.' + sin(theta).*Ky.').*FT_exp_xy;
-        dr_Gamma_pos_xy(b,:) = 1/(2*pi) * d2k * dr_FT_exp_xy * GS_basis_mom;
+        dr_Gamma_pos_xy(b,:) =  dr_FT_exp_xy * GS_basis_mom;
     end
     
+    dr_Gamma_pos_xy = gather(dr_Gamma_pos_xy) * 1/(2*pi) * d2k;
     
 end

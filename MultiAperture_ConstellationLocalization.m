@@ -99,11 +99,11 @@ end
 p = sum(s_b .* prob_fn(s_x,s_y),1);
 
 % simulate the measurement
-[measurement, mode_counts] = simulateMeasurement(n_pho, p);
+[~, mode_counts] = simulateMeasurement(n_pho, p);
 
 
 % find MLE of scene parameters given the measurement
-[s_b_trc, s_x_trc, s_y_trc, count] = EM(measurement,num_sources,prob_fn,X,Y,rl,EM_max);
+[s_b_trc, s_x_trc, s_y_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,EM_max);
 % intermediate scene parameter estimates
 s_b_im = s_b_trc(:,1:count-1); s_x_im = s_x_trc(:,1:count-1); s_y_im = s_y_trc(:,1:count-1);
 % final scene parameter estimates
@@ -212,11 +212,11 @@ end
 
 
 %% Estimation Functions
-function [s_b_trc, s_x_trc, s_y_trc, count] = EM(measurement,num_sources,prob_fn,X,Y,rl,n_em_max)
+function [s_b_trc, s_x_trc, s_y_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,n_em_max)
 % runs expectation maximization to determine source coordinates and source
 % brightnesses from a measurement.
 %
-% measurement       : 
+% mode_counts       : 
 % num_sources       : How many sources involved in the scene
 % prob_fn           : modal photon detection PMF given a source located at (x,y)
 % X                 :
@@ -260,13 +260,23 @@ while ( ~isempty(find(s_x-s_x_trc(:,end), 1)) || ~isempty(find(s_y-s_y_trc(:,end
       
     % measurement weights
     p_c = s_b .* p_j_est;
+    T = mode_counts .* p_c ./ sum(p_c,1);
+
+
+    % get Q
+    lnP = log(prob_fn(X(:),Y(:)));
+    Q = sum(pagemtimes(reshape(T,[size(T,1),1,size(T,2)]), reshape(lnP,[1,size(lnP)])),3);
+    
+    
+    %{
     T = p_c(:,measurement);
-    T = T ./ sum(T,1);
+    T = T./sum(T,1);
     
     % get Q
     P_xy = prob_fn(X(:),Y(:));      % PMF for candidate source locations X,Y
     lnP_jxy = log(P_xy(:,measurement));         % probability of detected photon mode at all candidate source locations
     Q = T * lnP_jxy';
+    %}
     
     
     Q_2D = zeros([size(X),num_sources]);
@@ -375,7 +385,7 @@ function [measurement,mode_count] = simulateMeasurement(n_pho,p)
     
     % count photons in modal bins
     [gc,gs] = groupcounts(measurement');
-    mode_count = zeros(numel(p),1);
+    mode_count = zeros(1,numel(p));
     mode_count(gs) = gc;
 end
 

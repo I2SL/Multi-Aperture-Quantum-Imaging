@@ -2,7 +2,7 @@ clear
 addpath('utils/')
 
 % survey trials per configuration
-trials = 30;
+trials = 4;
 
 % setup apertures
 D = 30;     % multi-aperture effective diameter [length]
@@ -33,7 +33,7 @@ DS.data = cell({});
 
 total_configs = numel(DS.basis)*numel(DS.num_pho)*numel(DS.aper_coords)*numel(DS.num_src)*numel(DS.min_sep);
 
-parpool(DS.trials)
+%parpool(trials)
 
 % Run parameter scans using matlab's Parallel Computing Toolbox
 visualize = 0;          % visualization trigger
@@ -65,7 +65,7 @@ for b = 1:numel(DS.basis)
                     
                     
                     disp(['-------Configuration: ' num2str(config_index),'/',num2str(total_configs),'--------'])
-                    parfor t = 1:DS.trials
+                    for t = 1:DS.trials
                         
                         
                         % run reconstruction 
