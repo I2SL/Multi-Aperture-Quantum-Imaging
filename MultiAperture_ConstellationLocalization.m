@@ -175,7 +175,7 @@ if visualize
 
 
         case 'Direct-Detection'
-            DD_photons = reshape(mode_counts, ip_dim*[1,1]);
+            DD_photons = reshape(mode_counts, img_samp*[1,1]);
             imagesc([min(X(:)),max(X(:))]/rl,[min(Y(:)),max(Y(:))]/rl,DD_photons)
             colorbar
             title({'Direct Detection Measurement',['Total Photons: ',num2str(sum(mode_counts))]});
