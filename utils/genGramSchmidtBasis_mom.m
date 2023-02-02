@@ -12,6 +12,13 @@ num_modes = (max_order+1)^2;
 num_supcrd = numel(Kx);                         % number of support coordinates
 GS_basis_mom = zeros(num_supcrd,num_modes);     % discretized GS mode matrix
 
+if gpuDeviceCount('available')>0
+    GS_basis_mom = gpuArray(GS_basis_mom);
+    Kx = gpuArray(Kx);
+    Ky = gpuArray(Ky);
+end
+
+tic
 mode = 1;
 for n = 0:max_order
     for m = 0:max_order
@@ -40,5 +47,8 @@ for n = 0:max_order
     end   
 end
 
+GS_basis_mom = gather(GS_basis_mom);
+disp('GS modes created')
+toc
 end
 
