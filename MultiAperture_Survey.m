@@ -3,7 +3,7 @@ addpath('utils/')
 
 
 % constants
-trials = 4;         % trials per configuration
+trials = 30;         % trials per configuration
 subap_samp = 101;   % saples per subaperture
 img_samp = 101;     % image plane samples
 EM_max = 20;        % max EM iterations
@@ -42,7 +42,7 @@ total_configs = numel(DS.basis)*numel(DS.num_pho)*numel(DS.apertures)*numel(DS.n
 parpool(DS.trials)
                    
 % (non-dimensionalize) rescale aperture-plane coordinates to the reference unit
-subap_radius = DS.subap_radius/GS.ref_unit;   % radius of reference sub-apertures [u]
+subap_radius = DS.subap_radius/DS.ref_unit;   % radius of reference sub-apertures [u]
 
 % Run parameter scans using matlab's Parallel Computing Toolbox
 visualize = 0;          % visualization trigger
@@ -148,34 +148,35 @@ for b = 1:numel(DS.basis)
                         % configure number of photons
                         n_pho = DS.num_pho(p);
                         
+                    disp(['-------Configuration: ' num2str(config_index),'/',num2str(total_configs),'--------'])
                     parfor t=1:trials
-                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-                    % simulate the measurement
-                    [~, mode_counts] = simulateMeasurement(n_pho, p_scene);
+                        % simulate the measurement
+                        [~, mode_counts] = simulateMeasurement(n_pho, p_scene);
 
-                    % find MLE of scene parameters given the measurement
-                    [s_b_trc, s_x_trc, s_y_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,EM_max);
-                    % intermediate scene parameter estimates
-                    s_b_im = s_b_trc(:,1:count-1); s_x_im = s_x_trc(:,1:count-1); s_y_im = s_y_trc(:,1:count-1);
-                    % final scene parameter estimates
-                    s_b_mle = s_b_trc(:,end); s_x_mle = s_x_trc(:,end); s_y_mle = s_y_trc(:,end);
+                        % find MLE of scene parameters given the measurement
+                        [s_b_trc, s_x_trc, s_y_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,EM_max);
+                        % intermediate scene parameter estimates
+                        s_b_im = s_b_trc(:,1:count-1); s_x_im = s_x_trc(:,1:count-1); s_y_im = s_y_trc(:,1:count-1);
+                        % final scene parameter estimates
+                        s_b_mle = s_b_trc(:,end); s_x_mle = s_x_trc(:,end); s_y_mle = s_y_trc(:,end);
 
-                    est_coords = [s_x_mle,s_y_mle];
-                    est_brites = s_b_mle;
-                    est_scene = [est_coords/rl, est_brites];
+                        est_coords = [s_x_mle,s_y_mle];
+                        est_brites = s_b_mle;
+                        est_scene = [est_coords/rl, est_brites];
 
-                    % compute the localization error
-                    err = LocalizationError(src_coords, est_coords, rl);
+                        % compute the localization error
+                        err = LocalizationError(src_coords, est_coords, rl);
 
-                    
-                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    
-                    % add to data component
-                    data(t,:) = {b,p,a,n,m,scene,est_scene,mode_counts,rl,err,config_index};    
-                    
-                    % display trial completion
-                    disp(['Trials Completed: ',num2str(t),'/',num2str(trials)])
+
+                        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+                        % add to data component
+                        data(t,:) = {b,p,a,n,m,scene,est_scene,mode_counts,rl,err,config_index};    
+
+                        % display trial completion
+                        disp(['Trials Completed: ',num2str(t),'/',num2str(trials)])
                     end
                     
                     % incorporate into data structure
