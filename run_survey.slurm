@@ -12,4 +12,4 @@
 
 module load matlab
 
-matlab -nodisplay -nosplash < run.m > output.txt
+matlab -nodisplay -nosplash < MultiAperture_Survey.m > output.txt
