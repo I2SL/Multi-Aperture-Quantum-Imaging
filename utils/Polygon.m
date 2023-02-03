@@ -25,28 +25,27 @@ function coords_xy = Polygon(n,rotation,type,param)
     
     switch type
         case 'radius'
+            % Radius of vertices 
             R = param;
-            r = R*r;
-            
-            % source positions on a disk of radius R
-            [x,y] = pol2cart(th,r); 
-            coords_xy = [x,y];
-            
+ 
         case 'separation'
+            % Radius to make adjacent vertex spacing equal to S 
             S = param;
             del_th = th(2)-th(1);
             
-            % source positions for an adjacent vertex spacing equal to S 
-            [x,y] = pol2cart(th,r); 
-            coords_xy = [x,y];
-            
             if n == 2
-                coords_xy = S * coords_xy / 2 ;
+                R = S/2;
             elseif n > 2
-                coords_xy = S * coords_xy / sin(del_th/2);
+                R = S/2 / sin(del_th/2);
             end
             
     end
+    
+    r = R*r;
+                
+    % source positions on a disk of radius R
+    [x,y] = pol2cart(th,r); 
+    coords_xy = [x,y];
     
 
 
