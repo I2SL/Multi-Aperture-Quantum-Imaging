@@ -14,7 +14,7 @@ Ky = [];
 
 for j = 1:num_apertures
     % bounding box for each sub-aperture
-    [kx,ky] = meshgrid(linspace(-1,1, subap_sampling)); 
+    [kx,ky] = meshgrid(linspace(-1,1,subap_sampling)); 
         
     % centered sub-aperture coordinates
     in_j = kx.^2 + ky.^2 < 1;

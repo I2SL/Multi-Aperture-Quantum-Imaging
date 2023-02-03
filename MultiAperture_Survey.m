@@ -3,15 +3,19 @@ addpath('utils/')
 
 
 % constants
-trials = 30;         % trials per configuration
+trials = 94;         % trials per configuration
 subap_samp = 101;   % saples per subaperture
 img_samp = 101;     % image plane samples
-EM_max = 20;        % max EM iterations
+EM_max = 100;        % max EM iterations
 max_order = 5;      % max basis order for GS and Zernike       
 
 % setup apertures
+
 D_eff = 30;     % multi-aperture effective diameter [length]
 R_eff = D_eff/2;    % multi-aperture effective radius   [length]
+d = D_eff;      % sub-aperture diameter             [length]
+r = R_eff;      % sub-apeture radius                [length]
+%{
 d = 3;      % sub-aperture diameter             [length]
 r = d/2;    % sub-apeture radius                [length]
 ap2 = Polygon(2,0,'radius',R_eff);
@@ -19,6 +23,8 @@ ap3 = Polygon(3,0,'radius',R_eff);
 ap9 = Polygon(9,0,'radius',R_eff);
 golay9 = Golay9(R_eff);
 apertures = {ap2,ap3,ap9,golay9};
+%}
+apertures = {[0,0]};
 
 % data structure for organizing survey results
 DS = struct();
@@ -39,7 +45,7 @@ DS.data = cell({});
 
 total_configs = numel(DS.basis)*numel(DS.num_pho)*numel(DS.apertures)*numel(DS.num_src)*numel(DS.min_sep);
 
-parpool(DS.trials)
+parpool(trials)
                    
 % (non-dimensionalize) rescale aperture-plane coordinates to the reference unit
 subap_radius = DS.subap_radius/DS.ref_unit;   % radius of reference sub-apertures [u]
@@ -59,8 +65,12 @@ for b = 1:numel(DS.basis)
         ap_num = size(aper_coords,1);           % number of sub-apertures
         A_sub = pi*subap_radius^2;              % subaperture collection area [u^2]
         A_tot = ap_num * A_sub;                 % total collection area of the multi-aperture system [u^2]
-        B = pdist(aper_coords);                 % baseline lengths [u]
-        max_B = max([1,B]);                     % max baseline [u]
+        if ap_num > 1
+            B = pdist(aper_coords);                 % baseline lengths [u]
+            max_B = max([1,B]);                     % max baseline [u]
+        else
+            max_B = 1;
+        end
         
         % rayleigh lengths
         rl_sub = 2*pi*1.22;                     % sub-aperture rayleigh length [rad/u]
@@ -183,7 +193,7 @@ for b = 1:numel(DS.basis)
                     DS.data(((config_index-1)*DS.trials+1):(config_index*DS.trials),:) = data;
                     
                     % save current data structure
-                    save('Survey.mat','DS')
+                    save('Survey_monolith_2-3-2023.mat','DS')
                     
                     % increment the configuration index
                     config_index = config_index + 1;

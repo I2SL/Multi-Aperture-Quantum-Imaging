@@ -13,12 +13,12 @@ function [s_b_trc, s_x_trc, s_y_trc, count] = EM(mode_counts,num_sources,prob_fn
 % initialize source positions
 
 % random sub-rayleigh source position initialization
-s_x = rl*(rand(num_sources,1)-.5);
-s_y = rl*(rand(num_sources,1)-.5);
+s_x = rl/4*(rand(num_sources,1)-.5);
+s_y = rl/4*(rand(num_sources,1)-.5);
 
 % radial sub-rayleigh source position initialization
-%s_x = rl/4.*cos(2*pi*(0:num_sources-1)/num_sources)';
-%s_y = rl/4.*sin(2*pi*(0:num_sources-1)/num_sources)';
+%s_x = rl/4.*cos(2*pi*(0:num_sources-1)/num_sources + pi/2)';
+%s_y = rl/4.*sin(2*pi*(0:num_sources-1)/num_sources + pi/2)';
 
 % initialize source weights
 s_b = ones(num_sources,1)/num_sources;
@@ -61,32 +61,67 @@ while ( ~isempty(find(s_x-s_x_trc(:,end), 1)) || ~isempty(find(s_y-s_y_trc(:,end
         Q_2D(:,:,i) = reshape(Q(i,:),size(X));
     end 
     
-    %{
+    
     % debugging
     % visualization of objective function for MLE estimators
+    %{
     peaked_Q = zeros([size(X),num_sources]);
     for i = 1:num_sources
         ki =  find(Q(i,:) == max(Q(i,:))); % max indices
         peaked_Qi = reshape(Q(i,:),size(X));
         peaked_Qi(ki) = peaked_Qi(ki) + 1e4;
         peaked_Q(:,:,i) = peaked_Qi; 
+        
+        subplot(1,num_sources,i)
+        surf(X/rl,Y/rl,peaked_Qi)
+        xlabel('x [rl]')
+        ylabel('y [rl]')
+        
+        
     end 
     %}
+    
+    
     
     % MAXIMIZATION STEP
     %s_b = sum(T,2)/size(T,2); % update source weights
     
+    
+    [s_x,s_y] = MLESourceCoords(X,Y,Q_2D);
+    
+    nc = size(s_x,3); % number of candidate source locations
+    if nc > 1
+        warning('EM iteration recovered degenerate solutions. Selecting first.')
+        s_x = s_x(:,1,1);
+        s_y = s_y(:,1,1);
+    end
+    %}
+    
+   %{
+    % choose candidates with the largest likelihood
+    nc = size(s_x,3); % number of candidate source locations
+    logpl = zeros(nc,1); % likelihood per candidate
+    for j = 1:nc
+        pj = sum(s_b .* prob_fn(s_x(:,1,j),s_y(:,1,j)),1);
+        logpl(j) = sum(mode_counts .* log(pj));
+    end
+    %}
+    
+    %{
     % get max likelihood location indices
     % the following ensures distinct source locations are chosen
     ind_sxy = getMLESourceIndices(Q_2D);
-    
-    %dx = X(1,2) - X(1,1);
-    %dy = Y(2,1) - Y(1,1);
-    
-    % assign source positions 
+    % assign source positions
+    dx = X(1,2) - X(1,1);
+    dy = Y(2,1) - Y(1,1);
     s_x = X(ind_sxy);% + dx*randn(numel(ind_sxy),1); %(plus a bit of noise to avoid degeneracies) 
     s_y = Y(ind_sxy);% + dy*randn(numel(ind_sxy),1); %(plus a bit of noise to avoid degeneracies) 
+    %}
     
+    if count == n_em_max+1
+        warning('EM reached max number of iterations')
+    end
+
 end
 
 

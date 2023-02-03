@@ -98,6 +98,9 @@ end
 % get modal probabilities for the given source distribution
 p = sum(s_b .* prob_fn(s_x,s_y),1);
 
+figure
+scatter(s_x/rl,s_y/rl,'filled','black'); 
+
 % simulate the measurement
 [~, mode_counts] = simulateMeasurement(n_pho, p);
 
@@ -124,7 +127,7 @@ if visualize
     scatter(Kx,Ky,'filled','blue');            hold on;
     scatter(0,0,10,'filled','black');   hold off;
     axis 'equal'
-    title('Aperture Configuration')
+    title('Aperture Configuration','interpreter','latex')
     xlabel('$k_x \, [\delta]$','interpreter','latex')
     ylabel('$k_y \, [\delta]$','interpreter','latex')
     
