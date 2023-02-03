@@ -136,11 +136,11 @@ if visualize
     switch basis
         case 'Gram-Schmidt'
             % visualize the GS modes
-            Visualize_GramSchmidt(nj,mj, GS_basis_pos);
+            Visualize_GramSchmidt(nj,mj,GS_basis_pos);
             
         case 'Zernike'
             % visualize the Mixed Zernike modes
-            Visualize_MixedAperture(nj,mj,vj,X,Y,U,aper_coords);
+            Visualize_MixedAperture(nj,mj,vj,X,Y,rl,U,aper_coords);
         
         case 'Direct-Detection'
             % visualize the PSF

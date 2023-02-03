@@ -13,9 +13,6 @@ max_order = 5;      % max basis order for GS and Zernike
 
 D_eff = 30;     % multi-aperture effective diameter [length]
 R_eff = D_eff/2;    % multi-aperture effective radius   [length]
-d = D_eff;      % sub-aperture diameter             [length]
-r = R_eff;      % sub-apeture radius                [length]
-%{
 d = 3;      % sub-aperture diameter             [length]
 r = d/2;    % sub-apeture radius                [length]
 ap2 = Polygon(2,0,'radius',R_eff);
@@ -23,8 +20,6 @@ ap3 = Polygon(3,0,'radius',R_eff);
 ap9 = Polygon(9,0,'radius',R_eff);
 golay9 = Golay9(R_eff);
 apertures = {ap2,ap3,ap9,golay9};
-%}
-apertures = {[0,0]};
 
 % data structure for organizing survey results
 DS = struct();
@@ -193,7 +188,7 @@ for b = 1:numel(DS.basis)
                     DS.data(((config_index-1)*DS.trials+1):(config_index*DS.trials),:) = data;
                     
                     % save current data structure
-                    save('Survey_monolith_2-3-2023.mat','DS')
+                    save('Survey_2-3-2023_94MC.mat','DS')
                     
                     % increment the configuration index
                     config_index = config_index + 1;

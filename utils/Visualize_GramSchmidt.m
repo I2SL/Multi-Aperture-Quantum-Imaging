@@ -1,4 +1,4 @@
-function VisualizeModes_GramSchmidt(nj,mj,phi_nm)
+function Visualize_GramSchmidt(nj,mj,X,Y,rl,phi_nm)
     
     nn = unique(nj);
     mm = unique(mj);
@@ -9,16 +9,16 @@ function VisualizeModes_GramSchmidt(nj,mj,phi_nm)
         
         subplot(numel(nn),numel(mm),j)
         
-        imagesc(abs(phi_nm(:,:,j)).^2)
+        imagesc([min(X(:)),max(X(:))]/rl,[min(Y(:)),max(Y(:))]/rl,abs(phi_nm(:,:,j)).^2)
         title(['(',num2str(nj(j)),',',num2str(mj(j)),')'])
         axis square
 
-        xticks([1,ceil(size(phi_nm,2)/2),size(phi_nm,2)]);
-        xticklabels([-1/2,0,1/2])
+        %xticks([1,ceil(size(phi_nm,2)/2),size(phi_nm,2)]);
+        %xticklabels([-1/2,0,1/2])
         xlabel('rl')
 
-        yticks([1,ceil(size(phi_nm,1)/2),size(phi_nm,1)]);
-        yticklabels([-1/2,0,1/2])
+        %yticks([1,ceil(size(phi_nm,1)/2),size(phi_nm,1)]);
+        %yticklabels([-1/2,0,1/2])
         ylabel('rl')
     end
     
