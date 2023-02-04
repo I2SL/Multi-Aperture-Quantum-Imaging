@@ -4,7 +4,7 @@
 #SBATCH --time=18:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=30
+#SBATCH --cpus-per-task=94
 #SBATCH --job-name=MultiApSurvey
 #SBATCH --mem-per-cpu=5gb
 #SBATCH --mail-user=ndeshler@arizona.edu
