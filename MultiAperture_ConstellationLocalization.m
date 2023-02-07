@@ -104,9 +104,8 @@ scatter(s_x/rl,s_y/rl,'filled','black');
 % simulate the measurement
 [~, mode_counts] = simulateMeasurement(n_pho, p);
 
-
 % find MLE of scene parameters given the measurement
-[s_b_trc, s_x_trc, s_y_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,EM_max);
+[s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,EM_max);
 % intermediate scene parameter estimates
 s_b_im = s_b_trc(:,1:count-1); s_x_im = s_x_trc(:,1:count-1); s_y_im = s_y_trc(:,1:count-1);
 % final scene parameter estimates

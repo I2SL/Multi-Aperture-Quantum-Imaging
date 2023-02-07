@@ -3,14 +3,15 @@ addpath('utils/')
 
 
 % constants
-trials = 94;         % trials per configuration
-subap_samp = 101;   % saples per subaperture
-img_samp = 101;     % image plane samples
-EM_max = 100;        % max EM iterations
+timestamp = datetime;
+trials = 94;        % trials per configuration
+subap_samp = 101;   % samples per subaperture [Gram-Schmidt] (must be odd!)
+img_samp = 101;     % image plane samples (must be odd!)
+EM_max = 100;       % max EM iterations
+EM_cycles = 10;     % number of times to run the EM algorithm (with different initializations) on the same 
 max_order = 5;      % max basis order for GS and Zernike       
 
 % setup apertures
-
 D_eff = 30;     % multi-aperture effective diameter [length]
 R_eff = D_eff/2;    % multi-aperture effective radius   [length]
 d = 3;      % sub-aperture diameter             [length]
@@ -21,7 +22,7 @@ ap9 = Polygon(9,0,'radius',R_eff);
 golay9 = Golay9(R_eff);
 apertures = {ap2,ap3,ap9,golay9};
 
-% data structure for organizing survey results
+% data structure for logging survey results
 DS = struct();
 DS.trials = trials;
 DS.img_samp = img_samp;
@@ -30,6 +31,7 @@ DS.subap_radius = r;
 DS.ref_unit = r;
 DS.effap_radius = R_eff;
 DS.EM_max = EM_max;
+DS.EM_cycles = EM_cycles;
 DS.max_order = max_order;
 DS.num_pho = [1e3,5e3,1e4,2e4];
 DS.basis = {'Gram-Schmidt','Direct-Detection','Zernike'};
@@ -159,20 +161,26 @@ for b = 1:numel(DS.basis)
 
                         % simulate the measurement
                         [~, mode_counts] = simulateMeasurement(n_pho, p_scene);
+                        
+                        for k = 1:DS.EM_cycles
+                            % find MLE of scene parameters given the measurement
+                            [s_b_trc, s_x_trc, s_y_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,EM_max);
 
-                        % find MLE of scene parameters given the measurement
-                        [s_b_trc, s_x_trc, s_y_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,EM_max);
-                        % intermediate scene parameter estimates
-                        s_b_im = s_b_trc(:,1:count-1); s_x_im = s_x_trc(:,1:count-1); s_y_im = s_y_trc(:,1:count-1);
-                        % final scene parameter estimates
-                        s_b_mle = s_b_trc(:,end); s_x_mle = s_x_trc(:,end); s_y_mle = s_y_trc(:,end);
+                            % intermediate scene parameter estimates
+                            s_b_im = s_b_trc(:,1:count-1); s_x_im = s_x_trc(:,1:count-1); s_y_im = s_y_trc(:,1:count-1);
+                            
+                            % final scene parameter estimates
+                            s_b_mle = s_b_trc(:,end); s_x_mle = s_x_trc(:,end); s_y_mle = s_y_trc(:,end);
+                            
+                            % mle scene estimate
+                            est_coords = [s_x_mle,s_y_mle];
+                            est_brites = s_b_mle;
+                            est_scene = [est_coords/rl, est_brites];
 
-                        est_coords = [s_x_mle,s_y_mle];
-                        est_brites = s_b_mle;
-                        est_scene = [est_coords/rl, est_brites];
-
-                        % compute the localization error
-                        err = LocalizationError(src_coords, est_coords, rl);
+                            % compute the localization error
+                            err = LocalizationError(src_coords, est_coords, rl);
+                        
+                        end
 
 
                         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

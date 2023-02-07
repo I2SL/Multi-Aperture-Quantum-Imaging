@@ -1,4 +1,4 @@
-function [s_b_trc, s_x_trc, s_y_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,n_em_max)
+function [s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,n_em_max)
 % runs expectation maximization to determine source coordinates and source
 % brightnesses from a measurement.
 %
@@ -7,122 +7,137 @@ function [s_b_trc, s_x_trc, s_y_trc, count] = EM(mode_counts,num_sources,prob_fn
 % prob_fn           : modal photon detection PMF given a source located at (x,y)
 % X                 :
 % Y                 :
-% rl                :
+% rl                : rayleigh length of
 % n_em_max          : max number of EM iterations
+% ---------------------------------------------
+% s_b_trc           : 
+% s_x_trc           :
+% s_y_trc           :
+% loglike_trc    :
+% count             :
+
 
 % initialize source positions
-
-% random sub-rayleigh source position initialization
-s_x = rl/4*(rand(num_sources,1)-.5);
-s_y = rl/4*(rand(num_sources,1)-.5);
 
 % radial sub-rayleigh source position initialization
 %s_x = rl/4.*cos(2*pi*(0:num_sources-1)/num_sources + pi/2)';
 %s_y = rl/4.*sin(2*pi*(0:num_sources-1)/num_sources + pi/2)';
 
+
+% random sub-rayleigh source position initialization
+s_x = rl/4*(rand(num_sources,1)-.5);
+s_y = rl/4*(rand(num_sources,1)-.5);
+
 % initialize source weights
 s_b = ones(num_sources,1)/num_sources;
 
-% traces of the scene parameter estimates accross EM iterations
-s_x_trc = zeros(num_sources,1);
-s_y_trc = zeros(num_sources,1);
-s_b_trc = zeros(num_sources,1);
 
+s_x_trc = zeros(num_sources,1);  % source x coordinates
+s_y_trc = zeros(num_sources,1);  % source y coordinates
+s_b_trc = zeros(num_sources,1);  % source brightnesses
+loglike_trc = zeros(1,1);       % log likelihood
+ 
 % log probability for all source position
 lnP = log(prob_fn(X(:),Y(:)));
 lnP = lnP(:,mode_counts >0);
 
+% keep iterating until:
+%       - parameters no longer change
+%       - the max number of EM iterations have been reached
+
 count = 0;
-while ( ~isempty(find(s_x-s_x_trc(:,end), 1)) || ~isempty(find(s_y-s_y_trc(:,end), 1))) && count<=n_em_max  
-    
-    % increment count
-    count = count + 1;
-    
-    s_x_trc(:,count) = s_x;
-    s_y_trc(:,count) = s_y;
-    s_b_trc(:,count) = s_b;
-    
-    % EXPECTATION STEP
+while ( ~all((s_x - s_x_trc(:,end)) == 0) || ~all((s_y - s_y_trc(:,end)) == 0) ) && count <= n_em_max
+% while ( ~isempty(find(s_x-s_x_trc(:,end), 1)) || ~isempty(find(s_y-s_y_trc(:,end), 1))) && count<=n_em_max  
     
     % get modal PMFs for each of the source position estimates 
     p_j_est = prob_fn(s_x,s_y); 
-      
-    % measurement weights
-    p_c = s_b .* p_j_est(:,mode_counts>0);
-    T = mode_counts(mode_counts>0) .* p_c ./ sum(p_c,1);
+    
+    % weight the modal PMFS of each source position by the relative source
+    % brightness
+    p_c = s_b .* p_j_est(:,mode_counts>0); 
+    
+    % probability per mode given the sources locations
+    p_mode = sum(p_c,1);
+    
+    % log likelihood of the source configuration
+    loglike = sum(mode_counts(mode_counts>0).* log(p_mode));
 
-    % get Q
-    Q = sum(pagemtimes(reshape(T,[size(T,1),1,size(T,2)]), reshape(lnP,[1,size(lnP)])),3);
+    % updated traces of the scene parameter estimates accross EM iterations
+    s_x_trc(:,count+1) = s_x;                                                  
+    s_y_trc(:,count+1) = s_y;                                                 
+    s_b_trc(:,count+1) = s_b;                                                  
+    loglike_trc(1,count+1) = loglike;  
     
     
-    % reshape Q for 2D    
-    Q_2D = zeros([size(X),num_sources]);
-    for i = 1:num_sources
-        Q_2D(:,:,i) = reshape(Q(i,:),size(X));
-    end 
-    
-    
-    % debugging
-    % visualization of objective function for MLE estimators
-    %{
-    peaked_Q = zeros([size(X),num_sources]);
-    for i = 1:num_sources
-        ki =  find(Q(i,:) == max(Q(i,:))); % max indices
-        peaked_Qi = reshape(Q(i,:),size(X));
-        peaked_Qi(ki) = peaked_Qi(ki) + 1e4;
-        peaked_Q(:,:,i) = peaked_Qi; 
-        
-        subplot(1,num_sources,i)
-        surf(X/rl,Y/rl,peaked_Qi)
-        xlabel('x [rl]')
-        ylabel('y [rl]')
-        
-        
-    end 
-    %}
-    
-    
-    
-    % MAXIMIZATION STEP
-    %s_b = sum(T,2)/size(T,2); % update source weights
-    
-    
-    [s_x,s_y] = MLESourceCoords(X,Y,Q_2D);
-    
-    nc = size(s_x,3); % number of candidate source locations
-    if nc > 1
-        warning('EM iteration recovered degenerate solutions. Selecting first.')
-        s_x = s_x(:,1,1);
-        s_y = s_y(:,1,1);
-    end
-    %}
-    
-   %{
-    % choose candidates with the largest likelihood
-    nc = size(s_x,3); % number of candidate source locations
-    logpl = zeros(nc,1); % likelihood per candidate
-    for j = 1:nc
-        pj = sum(s_b .* prob_fn(s_x(:,1,j),s_y(:,1,j)),1);
-        logpl(j) = sum(mode_counts .* log(pj));
-    end
-    %}
-    
-    %{
-    % get max likelihood location indices
-    % the following ensures distinct source locations are chosen
-    ind_sxy = getMLESourceIndices(Q_2D);
-    % assign source positions
-    dx = X(1,2) - X(1,1);
-    dy = Y(2,1) - Y(1,1);
-    s_x = X(ind_sxy);% + dx*randn(numel(ind_sxy),1); %(plus a bit of noise to avoid degeneracies) 
-    s_y = Y(ind_sxy);% + dy*randn(numel(ind_sxy),1); %(plus a bit of noise to avoid degeneracies) 
-    %}
-    
-    if count == n_em_max+1
-        warning('EM reached max number of iterations')
-    end
+    if count < n_em_max    
+        % ----------- EXPECTATION STEP -----------
 
+        % measurement weights
+        T = mode_counts(mode_counts>0) .* p_c ./ sum(p_c,1);
+
+        % get Q
+        Q = sum(pagemtimes(reshape(T,[size(T,1),1,size(T,2)]), reshape(lnP,[1,size(lnP)])),3);
+
+        % reshape Q for 2D    
+        Q_2D = zeros([size(X),num_sources]);
+        for i = 1:num_sources
+            Q_2D(:,:,i) = reshape(Q(i,:),size(X));
+        end 
+
+        % ----------- MAXIMIZATION STEP -----------
+
+        %{
+        % debugging
+        % visualization of objective function for MLE estimators
+        peaked_Q = zeros([size(X),num_sources]);
+        for i = 1:num_sources
+            %ki =  find(Q(i,:) == max(Q(i,:))); % max indices
+            peaked_Qi = reshape(Q(i,:),size(X));
+            %peaked_Qi(ki) = peaked_Qi(ki) + 1e4;
+            peaked_Q(:,:,i) = peaked_Qi; 
+
+            subplot(1,num_sources,i)
+            surf(X/rl,Y/rl,peaked_Qi)
+            xlabel('x [rl]')
+            ylabel('y [rl]')
+            zlabel(['Q_',num2str(i)]);
+            title(['Intermediate Likelihood for Source ',num2str(i)])
+            axis 'square'
+
+        end 
+        %}
+        %{
+        % get max likelihood location indices
+        % the following ensures distinct source locations are chosen
+        ind_sxy = getMLESourceIndices(Q_2D);
+        % assign source positions
+        dx = X(1,2) - X(1,1);
+        dy = Y(2,1) - Y(1,1);
+        s_x = X(ind_sxy);% + dx*randn(numel(ind_sxy),1); %(plus a bit of noise to avoid degeneracies) 
+        s_y = Y(ind_sxy);% + dy*randn(numel(ind_sxy),1); %(plus a bit of noise to avoid degeneracies) 
+        %}
+
+        %s_b = sum(T,2)/size(T,2); % update source weights
+
+        [s_x,s_y] = MLESourceCoords(X,Y,Q_2D);
+
+        nc = size(s_x,3); % number of candidate source locations
+        if nc > 1
+            warning('EM iteration recovered degenerate solutions. Selecting first.')
+            s_x = s_x(:,1,1);
+            s_y = s_y(:,1,1);
+        end
+        
+    end
+    
+    % increment em updates counter
+    count = count + 1;
+    
+    
 end
 
+if count == n_em_max + 1
+    warning('EM reached max number of iterations')
+end
 
 end
