@@ -41,4 +41,4 @@
 
 module load matlab
 
-matlab -nodisplay -nosplash < ArraySurvey($SLURM_ARRAY_TASK_ID) >
+matlab -nodisplay -nosplash < ArraySurvey_ocelote( $SLURM_ARRAY_TASK_ID ) >
