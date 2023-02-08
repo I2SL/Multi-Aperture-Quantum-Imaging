@@ -4,35 +4,41 @@
 ### use standard partition to get priority. Otherwise use windfall
 #SBATCH --partition=standard
 ### Time allowed for job.
-#SBATCH --time=72:00:00
+#SBATCH --time=00-48:00:00
 ### Number of nodes assigned to EACH JOB. Not the total number of nodes used.
 #SBATCH --nodes=1
 ### number of tasks
 #SBATCH --ntasks=1
-###
+### number of cpus per task
 #SBATCH --cpus-per-task=94
-###
-#SBATCH --job-name=MultiApSurvey
+### the name of the job
+#SBATCH --job-name=MultiAp_EMcycles
 ### memory per CPU
 #SBATCH --mem-per-cpu=5gb
-###
-### SBATCH -mem = 512gb
-###
-###
+### total memory requested = memory per cpu x cpus per task. Better not to use if you have ntasks and cpus per task set
+### SBATCH -mem = 470gb
+### email the user once job is done
 #SBATCH --mail-user=ndeshler@arizona.edu
-#SBATCH --array 1-
+### setup job array
+#SBATCH --array 1-96
+### output for a job array
+#SBATCH --output=MultiAp_cfg-%a.out
 
-#################################
-### USEFUL ENVIRONMENT VARIABLES
-#################################
+#########################
+### Additional flags ####
+#########################
+### Request GPU resources. Up to four GPUs may be requested on Puma on a single GPU node with --gres=gpu:1, 2, 3, or 4
+### SBATCH --gres=gpu:1
+
+
+####################################
+### USEFUL ENVIRONMENT VARIABLES ###
+####################################
 ### $SLURM_ARRAY_JOB_ID
 ### $SLURM_ARRAY_TASK_ID
 ### $SLURM_ARRAY_TASK_MAX
 ### $SLURM_ARRAY_TASK_MIN
 
-
-
-
 module load matlab
 
-matlab -nodisplay -nosplash < MultiAperture_Survey($SLURM_ARRAY_TASK_ID) > survey_output.txt
+matlab -nodisplay -nosplash < MultiAperture_Survey($SLURM_ARRAY_TASK_ID) >
