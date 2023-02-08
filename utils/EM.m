@@ -24,6 +24,21 @@ function [s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_so
 %s_y = rl/4.*sin(2*pi*(0:num_sources-1)/num_sources + pi/2)';
 
 
+% calculation of log-likelihood offset for multinomial (only necessary for
+% logging ln_trc)
+sterling = @(n) n.*log(n)-n; % sterling approximation to log(n!)
+N = sum(mode_counts);
+if N <= 170
+    log_N = log(factorial(N));
+else
+    log_N = sterling(N);
+end
+log_n = zeros(size(mode_counts));        
+log_n(mode_counts <= 170) = log(factorial(mode_counts(mode_counts <= 170)));
+log_n(mode_counts > 170) = sterling(mode_counts(mode_counts > 170));
+offset = log_N - sum(log_n); % log( N!/ ( n1! ... nM!) ) 
+
+
 % random sub-rayleigh source position initialization
 s_x = rl/4*(rand(num_sources,1)-.5);
 s_y = rl/4*(rand(num_sources,1)-.5);
@@ -60,8 +75,8 @@ while ( ~all((s_x - s_x_trc(:,end)) == 0) || ~all((s_y - s_y_trc(:,end)) == 0) )
     p_mode = sum(p_c,1);
     
     % log likelihood of the source configuration
-    loglike = sum(mode_counts(mode_counts>0).* log(p_mode));
-
+    loglike = sum(mode_counts(mode_counts>0).* log(p_mode)) + offset;
+    
     % updated traces of the scene parameter estimates accross EM iterations
     s_x_trc(:,count+1) = s_x;                                                  
     s_y_trc(:,count+1) = s_y;                                                 
@@ -123,7 +138,7 @@ while ( ~all((s_x - s_x_trc(:,end)) == 0) || ~all((s_y - s_y_trc(:,end)) == 0) )
 
         nc = size(s_x,3); % number of candidate source locations
         if nc > 1
-            warning('EM iteration recovered degenerate solutions. Selecting first.')
+            % warning('EM iteration recovered degenerate solutions. Selecting first.')
             s_x = s_x(:,1,1);
             s_y = s_y(:,1,1);
         end

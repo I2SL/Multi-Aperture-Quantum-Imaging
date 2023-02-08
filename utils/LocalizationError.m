@@ -1,6 +1,6 @@
-function err = LocalizationError(xy_src,xy_est,rl)
-    % Computes the average localization error (in fractions of a rayleigh)
-    % accross all source position estimates
+function err = LocalizationError(xy_src,xy_est)
+    % Computes the average localization error per source for a given
+    % estimate of the constellation
     
     % calculate the total error distance between all possible pairings of
     % the ground truth sources and the estimated sources
@@ -24,10 +24,6 @@ function err = LocalizationError(xy_src,xy_est,rl)
        
     % get the average error per source by dividing the number of sources.
     err = err / num_sources;
-    
-    % normalize the average error by the rayleigh length
-    % to get the average error as a fraction of the rayleigh length
-    err = err / rl;
     
 end
 
