@@ -1,4 +1,4 @@
-function ArraySurvey(array_id)
+function ArraySurvey_ocelote(array_id)
 
     addpath('utils/')
 
