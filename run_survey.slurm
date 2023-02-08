@@ -4,7 +4,7 @@
 ### use standard partition to get priority. Otherwise use windfall
 #SBATCH --partition=standard
 ### Time allowed for job.
-#SBATCH --time=00-24:00:00
+#SBATCH --time=00-12:00:00
 ### Number of nodes assigned to EACH JOB. Not the total number of nodes used.
 #SBATCH --nodes=1
 ### number of tasks
@@ -41,4 +41,4 @@
 
 module load matlab
 
-matlab -nodisplay -nosplash < ArraySurvey($SLURM_ARRAY_TASK_ID) >
+matlab matlab -nodisplay -nosplash -batch "ArraySurvey($SLURM_ARRAY_TASK_ID)" output_$SLURM_ARRAY_TASK_ID.txt
