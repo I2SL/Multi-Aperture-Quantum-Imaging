@@ -1,6 +1,8 @@
 # Multi-Aperture-Quantum-Imaging
 Quantum super-resolution imaging using optical systems with multiple apertures.
 
+The manuscript can be found [here](https://www.overleaf.com/read/wxxqxsrhhqwz).
+
 
 
 ### Future Code Updates:
