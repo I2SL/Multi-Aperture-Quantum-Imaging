@@ -48,7 +48,7 @@ function DS = DSformat()
     DS.cfg_data_names = {'Rayleigh Length','Scene','Measurement Mode Counts','Estimated Scene','Log Likelihood','Error'};
     
     % array properties (parameter scans)
-    DS.num_pho = [1e3,5e3,1e4,2e4];
+    DS.num_pho = [5e3,1e4,2e4];
     DS.basis = {'Direct-Detection','Gram-Schmidt','Zernike'};
     DS.min_sep_frac = 2.^(linspace(-6,-3,8)); % fractional rayleigh units
     DS.apertures = apertures;                 % [length]

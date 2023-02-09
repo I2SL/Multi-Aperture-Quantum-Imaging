@@ -19,8 +19,8 @@
 ### SBATCH -mem = 470gb
 ### email the user once job is done
 #SBATCH --mail-user=ndeshler@arizona.edu
-### setup job array
-#SBATCH --array 1-1152
+### setup job array - max size of job array is 1000
+#SBATCH --array 1-864
 ### output for a job array
 #SBATCH --output=MultiAp_cfg-%a.out
 
