@@ -34,11 +34,20 @@
 ####################################
 ### USEFUL ENVIRONMENT VARIABLES ###
 ####################################
+### https://blog.ronin.cloud/slurm-job-arrays/
 ### $SLURM_ARRAY_JOB_ID
 ### $SLURM_ARRAY_TASK_ID
 ### $SLURM_ARRAY_TASK_MAX
 ### $SLURM_ARRAY_TASK_MIN
 
+
+####################
+### USEFUL LINKS ###
+####################
+### https://blog.ronin.cloud/slurm-job-arrays/
+
+
+
 module load matlab
 
-matlab matlab -nodisplay -nosplash -batch "ArraySurvey($SLURM_ARRAY_TASK_ID)" output_$SLURM_ARRAY_TASK_ID.txt
+matlab matlab -nodisplay -nosplash -batch "ArraySurvey($SLURM_ARRAY_TASK_ID)" output_{$SLURM_ARRAY_TASK_ID}.txt

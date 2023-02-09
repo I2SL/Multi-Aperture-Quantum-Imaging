@@ -10,9 +10,9 @@ function DS = DSformat()
 
     
     % constants
-    trials = 2*94;        % trials per configuration
+    trials = 200;       % trials per configuration
     subap_samp = 101;   % samples per subaperture [Gram-Schmidt] (must be odd!)
-    img_samp = 101;     % image plane samples (must be odd!)
+    img_samp = 151;     % image plane samples (must be odd!)
     EM_iters = 100;     % max EM iterations
     EM_cycles = 50;     % number of times to run the EM algorithm (with different initializations) on the same 
     max_order = 5;      % max basis order for GS and Zernike       
@@ -26,7 +26,8 @@ function DS = DSformat()
     ap3 = Polygon(3,0,'radius',R_eff);
     ap9 = Polygon(9,0,'radius',R_eff);
     golay9 = Golay9(R_eff);
-    apertures = {ap3,golay9};
+    apertures = {ap2,ap3,ap9,golay9};
+    aperture_names = {'2 Aperture','3 Aperture','9 Aperture','Golay-9'};
 
 
     % data structure with some limited functionality
@@ -43,16 +44,17 @@ function DS = DSformat()
     DS.ref_unit = r;                        % reference unit
     DS.effap_radius = R_eff;                % effective aperture radius
     DS.max_order = max_order;               % max modal order
-    DS.cfg_idx_names = {'Basis Index (b)','Photon Number Index (p)','Aperture Index (a)','Source Number Index (s)','Trial Index (t)'};
+    DS.cfg_idx_names = {'Basis Index (b)','Photon Number Index (p)','Aperture Index (a)','Source Number Index (n)','Min Separation Index (m)'};
     DS.cfg_data_names = {'Rayleigh Length','Scene','Measurement Mode Counts','Estimated Scene','Log Likelihood','Error'};
-
+    
     % array properties (parameter scans)
     DS.num_pho = [1e3,5e3,1e4,2e4];
     DS.basis = {'Direct-Detection','Gram-Schmidt','Zernike'};
-    DS.min_sep_frac = 2.^(linspace(-6,-3,8)); % fractional rayleigh units
+    DS.min_sep_frac = 2.^(linspace(-6,-3,10)); % fractional rayleigh units
     DS.apertures = apertures;                 % [length]
+    DS.aperture_names = aperture_names;
     DS.num_src = 2:5;
-    DS.cfg_size = [numel(DS.basis),numel(DS.num_pho),numel(DS.apertures),numel(DS.num_src)];  % the dimensionality of the parameter space range
+    DS.cfg_size = [numel(DS.basis),numel(DS.num_pho),numel(DS.apertures),numel(DS.num_src),numel(DS.min_sep_frac)];  % the dimensionality of the parameter space range
     DS.data = cell(DS.cfg_size);
     
 end
