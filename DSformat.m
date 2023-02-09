@@ -26,7 +26,7 @@ function DS = DSformat()
     ap3 = Polygon(3,0,'radius',R_eff);
     ap9 = Polygon(9,0,'radius',R_eff);
     golay9 = Golay9(R_eff);
-    apertures = {ap2,ap3,ap9,golay9};
+    apertures = {ap3,ap9,golay9};
     aperture_names = {'2 Aperture','3 Aperture','9 Aperture','Golay-9'};
 
 
@@ -50,7 +50,7 @@ function DS = DSformat()
     % array properties (parameter scans)
     DS.num_pho = [1e3,5e3,1e4,2e4];
     DS.basis = {'Direct-Detection','Gram-Schmidt','Zernike'};
-    DS.min_sep_frac = 2.^(linspace(-6,-3,10)); % fractional rayleigh units
+    DS.min_sep_frac = 2.^(linspace(-6,-3,8)); % fractional rayleigh units
     DS.apertures = apertures;                 % [length]
     DS.aperture_names = aperture_names;
     DS.num_src = 2:5;
