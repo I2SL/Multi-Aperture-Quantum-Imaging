@@ -4,7 +4,7 @@
 ### use standard partition to get priority. Otherwise use windfall
 #SBATCH --partition=standard
 ### Time allowed for job.
-#SBATCH --time=00-12:00:00
+#SBATCH --time=00-72:00:00
 ### Number of nodes assigned to EACH JOB. Not the total number of nodes used.
 #SBATCH --nodes=1
 ### number of tasks
@@ -20,7 +20,7 @@
 ### email the user once job is done
 #SBATCH --mail-user=ndeshler@arizona.edu
 ### setup job array
-#SBATCH --array 1-96
+#SBATCH --array 100-864
 ### output for a job array
 #SBATCH --output=MultiAp_cfg-%a.out
 
