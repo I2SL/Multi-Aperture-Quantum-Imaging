@@ -20,7 +20,7 @@
 ### email the user once job is done
 #SBATCH --mail-user=ndeshler@arizona.edu
 ### setup job array
-#SBATCH --array 100-864
+#SBATCH --array 133-864
 ### output for a job array
 #SBATCH --output=MultiAp_cfg-%a.out
 
