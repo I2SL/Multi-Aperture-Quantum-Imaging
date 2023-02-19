@@ -1,4 +1,4 @@
-function ArraySurvey(array_id)
+function ArraySurvey(array_id,num_workers)
 
     addpath('utils/')
 
@@ -15,13 +15,16 @@ function ArraySurvey(array_id)
     cfg_id = {b,p,a,n,m};
     
     % parfor configuration variables
-    EM_iters = DS.EM_iters;             % number of EM iterations to use per initialization
-    EM_cycles = DS.EM_cycles;           % number of EM initializations to run per measurement
+    trials = DS.trials;
+    EM_iters_max = DS.EM_iters_max;             % number of EM iterations to use per initialization
+    EM_cycles = DS.EM_cycles;               % number of EM initializations to run per measurement
     basis = DS.basis{b};
     num_pho = DS.num_pho(p);
     aper_coords = DS.apertures{a};
     num_src = DS.num_src(n);
     min_sep_frac = DS.min_sep_frac(m);
+    align_centroid = DS.align_centroid;
+    
                        
     % rescale aperture coordinates to be in the reference unit
     aper_coords = aper_coords/DS.ref_unit;     % sub-aperture coordinates [u]
@@ -95,7 +98,7 @@ function ArraySurvey(array_id)
     %%
     
     % run parameter scans using matlab's Parallel Computing Toolbox
-    parpool(94)
+    parpool(num_workers)
     
     disp(['-------Configuration: ' num2str(array_id),'/',num2str(prod(DS.cfg_size)),'--------'])    
     
@@ -104,8 +107,9 @@ function ArraySurvey(array_id)
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
         % configure scene
-        src_coords_frac = genMinDistConstellation(num_src,min_sep_frac); % source coordinates in fractional rayleigh units [x/rl]
-        src_brites = ones(num_src,1) / num_src;
+        src_brites = ones(num_src, 1) / num_src;
+        src_coords_frac = genMinDistConstellation(num_src,min_sep_frac,align_centroid); % source coordinates in fractional rayleigh units [x/rl]
+
         scene = [src_coords_frac, src_brites];
 
         % source distribution
@@ -132,7 +136,7 @@ function ArraySurvey(array_id)
         for k = 1:EM_cycles   
             tic         
             % find MLE of scene parameters given the measurement
-            [s_b_trc, s_x_trc, s_y_trc, loglike_trc,~] = EM(mode_counts,num_src,prob_fn,X,Y,rl,EM_iters);
+            [s_b_trc, s_x_trc, s_y_trc, loglike_trc, EM_iters] = EM(mode_counts,num_src,prob_fn,X,Y,rl,EM_iters_max,0);
 
             % final scene parameter estimates
             s_b_mle = s_b_trc(:,end); s_x_mle = s_x_trc(:,end); s_y_mle = s_y_trc(:,end);
@@ -151,10 +155,10 @@ function ArraySurvey(array_id)
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
         % add to data element
-        cfg_data(t,:) = {rl,scene,mode_counts,est_scene,loglike,err};    
+        cfg_data(t,:) = {rl,scene,mode_counts,est_scene,loglike,err,EM_iters};    
 
         % display trial completion
-        disp(['Trials Completed: ',num2str(t),'/',num2str(DS.trials)])
+        disp(['Trials Completed: ',num2str(t),'/',num2str(trials)])
     end
     
     DS.data(cfg_id{:}) = {cfg_data};

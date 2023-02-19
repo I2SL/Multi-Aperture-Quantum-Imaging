@@ -1,5 +1,5 @@
 function DS = DSformat()
-    % DS.cfg_data = {rl, scene, measurement, mle_scene, likelihood, err};
+    % DS.cfg_data = {rl, scene, measurement, mle_scene, likelihood, err, EM_iterations};
     % cfg = [b,p,a,n,m,t]   --> configuration index vector [b = basis index, p = num_pho index, a = aperture index, n = num_src index, m = min_sep index, t = cfg_trials index]
     % rl                    --> the rayleigh length of the configuration
     % scene                 --> [n_src X 3 ] array contianing the scene parameters : x = scene(:,1), y = scene(:,2), b = scene(:,3) 
@@ -13,9 +13,10 @@ function DS = DSformat()
     trials = 200;       % trials per configuration
     subap_samp = 101;   % samples per subaperture [Gram-Schmidt] (must be odd!)
     img_samp = 151;     % image plane samples (must be odd!)
-    EM_iters = 100;     % max EM iterations
+    EM_iters_max = 100; % max EM iterations
     EM_cycles = 50;     % number of times to run the EM algorithm (with different initializations) on the same 
-    max_order = 5;      % max basis order for GS and Zernike       
+    max_order = 5;      % max basis order for GS and Zernike    
+    align_centroid = 1; % boolean dictacting whether or not the generated scenes are to have centrods aligned with the optical axis
 
     % setup apertures
     D_eff = 30;         % multi-aperture effective diameter [length]
@@ -29,14 +30,13 @@ function DS = DSformat()
     apertures = {ap3,ap9,golay9};
     aperture_names = {'2 Aperture','3 Aperture','9 Aperture','Golay-9'};
 
-
     % data structure with some limited functionality
     DS = struct();
     
     % const properties
     DS.timestamp = datetime;
-    DS.trials = trials;
-    DS.EM_iters = EM_iters;                 % how many iterations EM should run for
+    DS.trials = trials;                     % how many unique scenes/measurements we generate per configuration
+    DS.EM_iters_max = EM_iters_max;         % max number of iterations EM is allowed to run for
     DS.EM_cycles = EM_cycles;               % how many times we instantiate EM on the same measurement
     DS.img_samp = img_samp;                 % image plane samples (should be odd)
     DS.subap_samp = subap_samp;             % sub aperture samples (should be odd) [for gram-schmidt basis mainly]
@@ -44,6 +44,7 @@ function DS = DSformat()
     DS.ref_unit = r;                        % reference unit
     DS.effap_radius = R_eff;                % effective aperture radius
     DS.max_order = max_order;               % max modal order
+    DS.align_centroid = align_centroid;     % whether or not the target scenes in the survey were axis aligned  
     DS.cfg_idx_names = {'Basis Index (b)','Photon Number Index (p)','Aperture Index (a)','Source Number Index (n)','Min Separation Index (m)'};
     DS.cfg_data_names = {'Rayleigh Length','Scene','Measurement Mode Counts','Estimated Scene','Log Likelihood','Error'};
     
@@ -58,83 +59,5 @@ function DS = DSformat()
     DS.data = cell(DS.cfg_size);
     
 end
-
-
-
-%{
-function DS_reduced = ReduceDS(DS)
-    % Gets the best EM estimate (highest likelihood)
-    % for each trial of each configuration
-    DS_reduced = DS;
-
-    for i = 1:prod(DS.cfg_size)
-        cfg = DS.cfg_data{ind2sub(i,DS.cfg_size)};
-        
-        for j = 1:size(cfg,1)
-            [ml,ml_id] = max(cell2mat(cfg{:,4}),[],3);
-            cfg_reduced(j,:) = 
-        end
-        
-        DS_reduced(ind2sub(i,DS.cfg_size)) =
-    end
-    
-end
-
-
-function [] = measurementAvg(DS)
-
-end
-
-
-function [] = mergeDS(DS1,DS2)
-
-end
-
-
-cfg = DS.cfg({b,p,a,n,m}); % returns another cell array with the following properties 
-cfg(i,:) = {scene, measurement, mle_scenes, likelihoods, errs};
-
-
-
-dd = DS.data{cfg_id{:}};
-
-get estimates with highest loglikelihood among EM cycles
-[min_loglike,idx] = min(cell2mat(dd(:,end-1)),[],3)
-
-reduced_data = dd;
-
-for j = 1:DS.EM_cycles
-    reduced_data(j,:) = {dd{j,1},dd{j,2},dd{j,3}(:)}
-end
-DS_reduced = DS;
-
-DS_reduced.data{cfg_id{:}} = data
-v = {dd{:,end-1}  }
-
-
-plot likelihood versus error
-
-
-
-
-% to get the final estimates accross EM cycles we would do do
-cfg = DS.cfg({b,p,a,n,m});
-[max_like,max_like_id] = max(cell2mat(cfg(i,5)));
-
-
-
-
-
-
-DS.cfgs_num = prod(cfg_dim);
-DS.cfg_trials = 1:94;            % number of trials for each configuration        
-DS.data = cell(DS.cfg_size);
-
-%}
-
-
-
-
-
 
 

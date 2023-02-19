@@ -1,20 +1,21 @@
-function [s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,n_em_max)
+function [s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,n_em_max,brite_flag)
 % runs expectation maximization to determine source coordinates and source
 % brightnesses from a measurement.
 %
-% mode_counts       : 
+% mode_counts       : number of photons detected in each mode
 % num_sources       : How many sources involved in the scene
 % prob_fn           : modal photon detection PMF given a source located at (x,y)
-% X                 :
-% Y                 :
-% rl                : rayleigh length of
+% X                 : source domain x-coordinate
+% Y                 : source domain y-coordinate
+% rl                : rayleigh length of the system
 % n_em_max          : max number of EM iterations
+% brite_flag        : 1 if brightenesses are also to be estimated, 0 otherwise
 % ---------------------------------------------
-% s_b_trc           : 
-% s_x_trc           :
-% s_y_trc           :
-% loglike_trc    :
-% count             :
+% s_b_trc           : a trace of the brightness estimates across EM iterations
+% s_x_trc           : a trace of the source x position estimates across EM iterations
+% s_y_trc           : a trace of the source y position estimates across EM iterations
+% loglike_trc       : a trace of the log-likelihood of the estimate across EM iterations
+% count             : the number of EM iterations performed
 
 
 % initialize source positions
@@ -62,7 +63,6 @@ lnP = lnP(:,mode_counts >0);
 
 count = 0;
 while ( ~all((s_x - s_x_trc(:,end)) == 0) || ~all((s_y - s_y_trc(:,end)) == 0) ) && count <= n_em_max
-% while ( ~isempty(find(s_x-s_x_trc(:,end), 1)) || ~isempty(find(s_y-s_y_trc(:,end), 1))) && count<=n_em_max  
     
     % get modal PMFs for each of the source position estimates 
     p_j_est = prob_fn(s_x,s_y); 
@@ -121,19 +121,11 @@ while ( ~all((s_x - s_x_trc(:,end)) == 0) || ~all((s_y - s_y_trc(:,end)) == 0) )
 
         end 
         %}
-        %{
-        % get max likelihood location indices
-        % the following ensures distinct source locations are chosen
-        ind_sxy = getMLESourceIndices(Q_2D);
-        % assign source positions
-        dx = X(1,2) - X(1,1);
-        dy = Y(2,1) - Y(1,1);
-        s_x = X(ind_sxy);% + dx*randn(numel(ind_sxy),1); %(plus a bit of noise to avoid degeneracies) 
-        s_y = Y(ind_sxy);% + dy*randn(numel(ind_sxy),1); %(plus a bit of noise to avoid degeneracies) 
-        %}
-
-        %s_b = sum(T,2)/size(T,2); % update source weights
-
+        
+        if brite_flag
+            s_b = sum(T,2)/size(T,2); % update source weights
+        end
+        
         [s_x,s_y] = MLESourceCoords(X,Y,Q_2D);
 
         nc = size(s_x,3); % number of candidate source locations
@@ -147,7 +139,6 @@ while ( ~all((s_x - s_x_trc(:,end)) == 0) || ~all((s_y - s_y_trc(:,end)) == 0) )
     
     % increment em updates counter
     count = count + 1;
-    
     
 end
 
