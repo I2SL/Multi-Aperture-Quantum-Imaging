@@ -9,7 +9,8 @@ function [est_scene,mode_counts,rl,err] = ...
         subap_samp,...              % sub-aperure samples along each axis  --> Bounding box for each aperture has dimensions [subap_samp,subap_samp]
         img_samp,...                % image-plane samples along each axis  --> Image plane for source position estimates has dimensions [img_samp,img_samp]
         EM_max,...                  % max number of EM iterations          [integer]
-        visualize...               % visualization trigger                [boolean]
+        brite_flag,...              % estimate brightness trigger          [boolean]
+        visualize...                % visualization trigger                [boolean]
 )
 % static measurement estimation of point-source constellations with multi-aperture systems
     
@@ -98,14 +99,12 @@ end
 % get modal probabilities for the given source distribution
 p = sum(s_b .* prob_fn(s_x,s_y),1);
 
-figure
-scatter(s_x/rl,s_y/rl,'filled','black'); 
 
 % simulate the measurement
 [~, mode_counts] = simulateMeasurement(n_pho, p);
 
 % find MLE of scene parameters given the measurement
-[s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,EM_max);
+[s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,EM_max,brite_flag);
 % intermediate scene parameter estimates
 s_b_im = s_b_trc(:,1:count-1); s_x_im = s_x_trc(:,1:count-1); s_y_im = s_y_trc(:,1:count-1);
 % final scene parameter estimates
@@ -115,8 +114,11 @@ est_coords = [s_x_mle,s_y_mle];
 est_brites = s_b_mle;
 est_scene = [est_coords/rl, est_brites];
 
-% compute the localization error
-err = LocalizationError(src_coords, est_coords, rl);
+% compute the localization error at each iteration
+err_trc = arrayfun(@(k) LocalizationError(src_coords, [s_x_trc(:,k),s_y_trc(:,k)]),1:count);
+
+% final error
+err = err_trc(end);
 
 % visualize figures
 if visualize
@@ -193,10 +195,10 @@ if visualize
     scatter(s_x/rl,s_y/rl,'filled','black'); hold on;
     % plot the intermediate estimates
     if count > 1 
-        scatter(s_x_im/rl,s_y_im/rl)
+        scatter(s_x_im/rl,s_y_im/rl,5)
     end
     % plot the final constellation estimate
-    scatter(s_x_mle/rl,s_y_mle/rl,'filled','red')
+    scatter(s_x_mle/rl,s_y_mle/rl,'red','square')
     hold off
     title({'Expectation Maximization',[num2str(ap_num),'-aperture ', basis]})
     xlim([min(X(:)),max(X(:))]); xlabel('x (rl)');
@@ -206,7 +208,25 @@ if visualize
     names = cell(1,count+1);
     names(:) = {''}; names(1) = {'Ground Truth'}; names(end) = {'EM Estimate'};
     legend(names)
-    axis square   
+    axis square
+    
+    % plot the log-likelihood and the localization error as a function of iteration and the
+    % localization
+    figs(5) = figure;
+    subplot(2,1,1)
+    plot(loglike_trc)
+    title('Likelihood Convergence')
+    xlabel('Iteration')
+    ylabel('Log Likelihood')
+
+    
+    subplot(2,1,2)
+    plot(err_trc/min_sep)
+    title('Localization Error Convergence')
+    xlabel('Iteration')
+    ylabel('Fractional Localization Error')
+    
+    
     
 end
 
