@@ -133,11 +133,10 @@ if visualize
     ylabel('$k_y \, [\delta]$','interpreter','latex')
     
     % MODES
-    figs(2) = figure;
     switch basis
         case 'Gram-Schmidt'
             % visualize the GS modes
-            Visualize_GramSchmidt(nj,mj,GS_basis_pos);
+            Visualize_GramSchmidt(nj,mj,X,Y,rl,GS_basis_pos);
             
         case 'Zernike'
             % visualize the Mixed Zernike modes
@@ -200,11 +199,13 @@ if visualize
     % plot the final constellation estimate
     scatter(s_x_mle/rl,s_y_mle/rl,'red','square')
     hold off
-    title({'Expectation Maximization',[num2str(ap_num),'-aperture ', basis]})
-    xlim([min(X(:)),max(X(:))]); xlabel('x (rl)');
-    ylim([min(Y(:)),max(Y(:))]); ylabel('y (rl)');
-    xticks(linspace(min(X(:)),max(X(:)),7));
-    yticks(linspace(min(Y(:)),max(Y(:)),7));
+    title({'Expectation Maximization',basis}) 
+    xlabel('x (rl)');
+    ylabel('y (rl)');
+    xlim([min(X(:))/rl,max(X(:))/rl]); 
+    ylim([min(Y(:))/rl,max(Y(:))/rl]); 
+    xticks(linspace(min(X(:))/rl,max(X(:))/rl,5));
+    yticks(linspace(min(Y(:))/rl,max(Y(:))/rl,5));
     names = cell(1,count+1);
     names(:) = {''}; names(1) = {'Ground Truth'}; names(end) = {'EM Estimate'};
     legend(names)

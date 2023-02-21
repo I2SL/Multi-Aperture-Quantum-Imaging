@@ -24,7 +24,7 @@ basis = 'Direct-Detection';  % basis                                [string] ['G
 subap_radius = r;   % sub-aperture radius                  [double] [units : length]
 aper_coords = aperture; % aperture position                    [Mx2]    [units : length] --> col_1 = kx, col_2 = ky
 subap_samp = 101;   % sub-aperure samples along each axis  --> Bounding box for each aperture has dimensions [subap_samp,subap_samp]
-img_samp = 101;     % image-plane samples along each axis  --> Image plane for source position estimates has dimensions [img_samp,img_samp]
+img_samp = 121;     % image-plane samples along each axis  --> Image plane for source position estimates has dimensions [img_samp,img_samp]
 EM_max = 100;        % max number of EM iterations          [integer]
 brite_flag = 0;     % brightness estimation flag [boolean]
 visualize = 1;      % visualization flag for seeing output [boolean]
