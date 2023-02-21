@@ -20,6 +20,7 @@ The parent folder `Multi-Aperture-Quantum-Imaging` contains scripts for running 
 
 The `utils/` folder has a collection of functions mainly for computing/visualizing the different modal bases and running the expectation maximization algorithm.
 
+## Running An Estimation Task
 To run a single estimation task, open the `run.m` file and run the script. The parameters of the imaging system, the target constellation, and the estimation algorithm are summarized below.
 
 ```
