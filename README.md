@@ -20,10 +20,21 @@ The parent folder `Multi-Aperture-Quantum-Imaging` contains scripts for running 
 
 The `utils/` folder has a collection of functions mainly for computing/visualizing the different modal bases and running the expectation maximization algorithm.
 
-To run a single estimation task, open the `run.m` file and run the script. You can adjust several optional variables including:
+To run a single estimation task, open the `run.m` file and run the script. The parameters of the imaging system, the target constellation, and the estimation algorithm are summarized below.
 
 ```
-
+% parameters
+scene;              % input scene.                         [Nx3 matrix] Columns 1 and 2 are the x and y coordinates of the N sources [units : fractional rl].                                                                           Column 3 contains the relative brightness of each source. The sum of values in column 3 should                                                                         equal 1.
+n_pho = 5e4;        % mean photon number                   [integer]
+max_order  = 5;     % max modal order                      [integer]
+basis = 'Zernike';  % basis                                [string] ['Gram-Schmidt','Zernike', 'Direct-Detection']
+subap_radius = r;   % sub-aperture radius                  [double] [units : length]
+aper_coords;        % sub-aperture centroid positions      [Mx2 matrix] [units : length] columns 1 and 2 are the kx and ky coordinates respectively of the centroids                                                              for M circular apertures
+subap_samp = 101;   % sub-aperure samples along each axis  [odd integer] Bounding box for each aperture has dimensions [subap_samp,subap_samp]
+img_samp = 121;     % image-plane samples along each axis  [odd integer] Image plane for source position estimates has dimensions [img_samp,img_samp]
+EM_max = 100;       % max number of EM iterations          [integer]
+brite_flag = 0;     % brightness estimation flag           [boolean]
+visualize = 1;      % visualization flag for seeing output [boolean]
 ```
 
 
