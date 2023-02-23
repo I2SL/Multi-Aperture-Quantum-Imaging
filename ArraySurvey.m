@@ -78,9 +78,6 @@ function ArraySurvey(array_id,num_workers)
             % indices
             [nj,mj,vj] = Indices_MixedAperture(DS.max_order,ap_num);
 
-            % number of modes
-            num_modes = numel(nj);
-
             % Create Mixed-Aperture Zernike Basis
             U = dftmtx(ap_num)/sqrt(ap_num);   % a unitary matrix for mixing aperture-local modes
 
@@ -89,25 +86,21 @@ function ArraySurvey(array_id,num_workers)
 
         case 'Direct-Detection'
 
-            % number of modes
-            num_modes = numel(X);
-
             % probability function
             prob_fn = @(xq,yq) ModalProb_DirectImaging([xq,yq],X,Y,aper_coords);
 
     end    
     
     
-    %%
+    
     
     % run parameter scans using matlab's Parallel Computing Toolbox
     parpool(num_workers)
     
     disp(['-------Configuration: ' num2str(array_id),'/',num2str(prod(DS.cfg_size)),'--------'])    
     
-   %for t=1:DS.trials
+    %for t=1:DS.trials
     parfor t=1:DS.trials
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
         % configure scene
         src_brites = ones(num_src, 1) / num_src;
@@ -136,8 +129,8 @@ function ArraySurvey(array_id,num_workers)
         est_scene = zeros(num_src,3,EM_cycles);
         err = zeros(1,1,EM_cycles);
         loglike = zeros(1,1,EM_cycles);
-        for k = 1:EM_cycles   
-            tic         
+        tic
+        for k = 1:EM_cycles            
             % find MLE of scene parameters given the measurement
             [s_b_trc, s_x_trc, s_y_trc, loglike_trc, EM_iters] = EM(mode_counts,num_src,prob_fn,X,Y,rl,EM_iters_max,0);
 
@@ -153,8 +146,10 @@ function ArraySurvey(array_id,num_workers)
             est_scene(:,:,k) = [est_coords_frac, est_brites];   % scene estimate
             loglike(k) = loglike_trc(1,end);                    % log likelihood
             err(k) = LocalizationError(src_coords, est_coords); % localization error
-            toc
+            
         end
+        disp(num2str(DS.EM_cycles),' EM cycles completed.')
+        toc
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
         % add to data element
