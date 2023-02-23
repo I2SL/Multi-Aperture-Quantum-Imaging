@@ -12,7 +12,7 @@
 ### number of cpus per task
 #SBATCH --cpus-per-task=94
 ### the name of the job
-#SBATCH --job-name=MultiAp_EMcycles
+#SBATCH --job-name=MultiAp_CentroidAligned
 ### memory per CPU
 #SBATCH --mem-per-cpu=5gb
 ### total memory requested = memory per cpu x cpus per task. Better not to use if you have ntasks and cpus per task set
@@ -20,7 +20,7 @@
 ### email the user once job is done
 #SBATCH --mail-user=ndeshler@arizona.edu
 ### setup job array
-#SBATCH --array 133-864
+#SBATCH --array 1-504
 ### output for a job array
 #SBATCH --output=MultiAp_cfg-%a.out
 
