@@ -126,13 +126,15 @@ function ArraySurvey(array_id,num_workers)
         
         
         % different EM initializations
+
         est_scene = zeros(num_src,3,EM_cycles);
         err = zeros(1,1,EM_cycles);
         loglike = zeros(1,1,EM_cycles);
+        EM_iters = zeros(1,1,EM_cycles);
         tic
-        for k = 1:EM_cycles            
+        for k = 1:EM_cycles 
             % find MLE of scene parameters given the measurement
-            [s_b_trc, s_x_trc, s_y_trc, loglike_trc, EM_iters] = EM(mode_counts,num_src,prob_fn,X,Y,rl,EM_iters_max,0);
+            [s_b_trc, s_x_trc, s_y_trc, loglike_trc, iters] = EM(mode_counts,num_src,prob_fn,X,Y,rl,EM_iters_max,0);
 
             % final scene parameter estimates
             s_b_mle = s_b_trc(:,end); s_x_mle = s_x_trc(:,end); s_y_mle = s_y_trc(:,end);
@@ -146,9 +148,9 @@ function ArraySurvey(array_id,num_workers)
             est_scene(:,:,k) = [est_coords_frac, est_brites];   % scene estimate
             loglike(k) = loglike_trc(1,end);                    % log likelihood
             err(k) = LocalizationError(src_coords, est_coords); % localization error
-            
+            EM_iters(k) = iters;                                % EM iterations
         end
-        disp(num2str(DS.EM_cycles),' EM cycles completed.')
+        disp([num2str(DS.EM_cycles),' EM cycles completed.'])
         toc
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
