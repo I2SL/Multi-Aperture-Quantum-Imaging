@@ -27,20 +27,22 @@ function ArraySurvey(array_id,num_workers)
     num_src = DS.num_src(n);
     min_sep_frac = DS.min_sep_frac(m);
     align_centroid = DS.align_centroid;
+    subap_radius = DS.subap_radius;
     
                        
     % rescale aperture coordinates to be in the reference unit
     aper_coords = aper_coords/DS.ref_unit;     % sub-aperture coordinates [u]
+    subap_radius = subap_radius/DS.ref_unit;   % sub-aperture radius [u] 
         
     % multi-aperture parameters
-    ap_num = size(aper_coords,1);           % number of sub-apertures
-    A_sub = pi*DS.subap_radius^2;              % subaperture collection area [u^2]
-    A_tot = ap_num * A_sub;                 % total collection area of the multi-aperture system [u^2]
+    ap_num = size(aper_coords,1);               % number of sub-apertures
+    A_sub = pi*subap_radius^2;                  % subaperture collection area [u^2]
+    A_tot = ap_num * A_sub;                     % total collection area of the multi-aperture system [u^2]
     if ap_num > 1
         B = pdist(aper_coords);                 % baseline lengths [u]
         max_B = max([1,B]);                     % max baseline [u]
     else
-        max_B = 1;
+        max_B = DS.D_eff/DS.ref_unit;           % max baseline [u]
     end
 
     % rayleigh lengths
@@ -105,7 +107,12 @@ function ArraySurvey(array_id,num_workers)
         % configure scene
         src_brites = ones(num_src, 1) / num_src;
         src_coords_frac = genMinDistConstellation(src_brites,min_sep_frac,align_centroid); % source coordinates in fractional rayleigh units [x/rl]
-
+        
+        % snap src_coords to grid (optional)
+        %snap_idx = dsearchn([X(:),Y(:)]/rl,src_coords_frac);
+        %src_coords_frac = [X(snap_idx),Y(snap_idx)]/rl;
+        
+        % make the scene
         scene = [src_coords_frac, src_brites];
 
         % source distribution
