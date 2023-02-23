@@ -10,6 +10,9 @@ function ArraySurvey(array_id,num_workers)
     % make the DS structure
     DS = DSformat();
     
+    % make the save directory
+    mkdir(DS.save_dir)
+    
     % get configuration indices
     [b,p,a,n,m] = ind2sub(DS.cfg_size,array_id);
     cfg_id = {b,p,a,n,m};
@@ -102,13 +105,13 @@ function ArraySurvey(array_id,num_workers)
     
     disp(['-------Configuration: ' num2str(array_id),'/',num2str(prod(DS.cfg_size)),'--------'])    
     
-    %for t=1:DS.trials
+   %for t=1:DS.trials
     parfor t=1:DS.trials
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
         % configure scene
         src_brites = ones(num_src, 1) / num_src;
-        src_coords_frac = genMinDistConstellation(num_src,min_sep_frac,align_centroid); % source coordinates in fractional rayleigh units [x/rl]
+        src_coords_frac = genMinDistConstellation(src_brites,min_sep_frac,align_centroid); % source coordinates in fractional rayleigh units [x/rl]
 
         scene = [src_coords_frac, src_brites];
 
@@ -164,6 +167,6 @@ function ArraySurvey(array_id,num_workers)
     DS.data(cfg_id{:}) = {cfg_data};
 
     % save current data structure
-    fname = [num2str(array_id),'cfg_Survey_2-7-23','.mat'];
-    save(fullfile('data_out',fname),'cfg_id','DS')    
+    fname = [num2str(array_id),'cfg_2-23-23','.mat'];
+    save(fullfile(DS.save_dir,fname),'cfg_id','DS')    
 end

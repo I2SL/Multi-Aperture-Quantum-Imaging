@@ -17,12 +17,12 @@ src_coords = genMinDistConstellation(src_brites,.2,1); % source coordinates in f
 scene = [src_coords, src_brites];           % input scene. [Nx3] scene(:,1:2)->source coordinates [in fractions of rayleigh], scene(:,3)->relative source brightnesses
 
 
-% set the system paramters
+% set the system parameters
 n_pho = 5e4;        % mean photon number                   [integer]
 max_order  = 5;     % max modal order                      [integer]
 basis = 'Direct-Detection';  % basis                                [string] ['Gram-Schmidt','Zernike', 'Direct-Detection']
 subap_radius = r;   % sub-aperture radius                  [double] [units : length]
-aper_coords = aperture; % aperture position                    [Mx2]    [units : length] --> col_1 = kx, col_2 = ky
+aper_coords = aperture; % aperture position                [Mx2]    [units : length] --> col_1 = kx, col_2 = ky
 subap_samp = 101;   % sub-aperure samples along each axis  --> Bounding box for each aperture has dimensions [subap_samp,subap_samp]
 img_samp = 121;     % image-plane samples along each axis  --> Image plane for source position estimates has dimensions [img_samp,img_samp]
 EM_max = 100;        % max number of EM iterations          [integer]

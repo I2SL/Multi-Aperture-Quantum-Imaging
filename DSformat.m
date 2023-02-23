@@ -12,7 +12,7 @@ function DS = DSformat()
     % constants
     trials = 200;       % trials per configuration
     subap_samp = 101;   % samples per subaperture [Gram-Schmidt] (must be odd!)
-    img_samp = 151;     % image plane samples (must be odd!)
+    img_samp = 129;     % image plane samples (must be odd!)
     EM_iters_max = 100; % max EM iterations
     EM_cycles = 50;     % number of times to run the EM algorithm (with different initializations) on the same 
     max_order = 5;      % max basis order for GS and Zernike    
@@ -28,13 +28,16 @@ function DS = DSformat()
     ap9 = Polygon(9,0,'radius',R_eff);
     golay9 = Golay9(R_eff);
     apertures = {ap3,ap9,golay9};
-    aperture_names = {'2 Aperture','3 Aperture','9 Aperture','Golay-9'};
+    aperture_names = {'3 Aperture','9 Aperture','Golay-9'};
+    save_dir = fullfile('Survey_2-23-23_cluster_Centroid_Aligned','data_out');
+    
 
     % data structure with some limited functionality
     DS = struct();
     
     % const properties
     DS.timestamp = datetime;
+    DS.save_dir = save_dir;                 % save directory for the data structure
     DS.trials = trials;                     % how many unique scenes/measurements we generate per configuration
     DS.EM_iters_max = EM_iters_max;         % max number of iterations EM is allowed to run for
     DS.EM_cycles = EM_cycles;               % how many times we instantiate EM on the same measurement
@@ -50,8 +53,8 @@ function DS = DSformat()
     
     % array properties (parameter scans)
     DS.num_pho = [5e3,1e4,2e4];
-    DS.basis = {'Direct-Detection','Gram-Schmidt','Zernike'};
-    DS.min_sep_frac = 2.^(linspace(-6,-3,8)); % fractional rayleigh units
+    DS.basis = {'Gram-Schmidt','Zernike'};
+    DS.min_sep_frac = 2.^(linspace(-6,-3,7)); % fractional rayleigh units
     DS.apertures = apertures;                 % [length]
     DS.aperture_names = aperture_names;
     DS.num_src = 2:5;

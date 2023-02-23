@@ -12,7 +12,7 @@ function psi_nm = Basis_GramSchmidt_pos(xy_query,X,Y,GS_basis_pos)
     
     for i = 1:n_modes
         GS_i = GS_basis_pos(:,:,i);
-        psi_nm(:,i) = interp2(X,Y,GS_i,xq,yq);
+        psi_nm(:,i) = interp2(X,Y,GS_i,xq,yq,'spline',0); % use spline interpolation as the derivatives of the PSF produced by a system of hard apertures should be C2 continuous. All queries outside the domain are assigned to 0.
     end
     
 end
