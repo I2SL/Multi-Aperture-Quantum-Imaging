@@ -10,27 +10,28 @@ function DS = DSformat()
 
     
     % constants
-    trials = 200;       % trials per configuration
-    subap_samp = 101;   % samples per subaperture [Gram-Schmidt] (must be odd!)
-    img_samp = 129;     % image plane samples (must be odd!)
+    trials = 100;       % trials per configuration
+    mom_samp = 67;       % sample density of aperture plane [Gram-Schmidt] [samples/length]
+    pos_samp = 129;     % image plane samples (must be odd!)
     EM_iters_max = 100; % max EM iterations
-    EM_cycles = 50;     % number of times to run the EM algorithm (with different initializations) on the same 
+    EM_cycles = 20;     % number of times to run the EM algorithm (with different initializations) on the same 
     max_order = 5;      % max basis order for GS and Zernike    
-    align_centroid = 1; % boolean dictacting whether or not the generated scenes are to have centrods aligned with the optical axis
+    % align_centroid = 1; % boolean dictacting whether or not the generated scenes are to have centrods aligned with the optical axis
 
     % setup apertures
     D_eff = 30;         % multi-aperture effective diameter [length]
     R_eff = D_eff/2;    % multi-aperture effective radius   [length]
-    d = 3;      % sub-aperture diameter             [length]
-    r = d/2;    % sub-apeture radius                [length]
-    ap2 = Polygon(2,0,'radius',R_eff);
-    ap3 = Polygon(3,0,'radius',R_eff);
-    ap9 = Polygon(9,0,'radius',R_eff);
-    golay9 = Golay9(R_eff);
+    d = 3;              % sub-aperture diameter             [length]
+    r = d/2;            % sub-apeture radius                [length]
+    
+    ap3 = [Polygon(3,0,'radius',R_eff-r),r*ones(3,1)];
+    ap9 = [Polygon(9,0,'radius',R_eff-r),r*ones(9,1)];
+    golay9 = [Golay9(R_eff-r),r*ones(9,1)];    
     apertures = {ap3,ap9,golay9};
     aperture_names = {'3 Aperture','9 Aperture','Golay-9'};
-    save_dir = fullfile('Survey_2-23-23_cluster_Centroid_Aligned','data_out');
-    
+
+    % save directory
+    save_dir = fullfile('Survey_2-27-23_Centroid_Dependence','data_out');    
 
     % data structure with some limited functionality
     DS = struct();
@@ -41,21 +42,18 @@ function DS = DSformat()
     DS.trials = trials;                     % how many unique scenes/measurements we generate per configuration
     DS.EM_iters_max = EM_iters_max;         % max number of iterations EM is allowed to run for
     DS.EM_cycles = EM_cycles;               % how many times we instantiate EM on the same measurement
-    DS.img_samp = img_samp;                 % image plane samples (should be odd)
-    DS.subap_samp = subap_samp;             % sub aperture samples (should be odd) [for gram-schmidt basis mainly]
-    DS.subap_radius = r;                    % sub aperture radius
-    DS.ref_unit = r;                        % reference unit
-    DS.effap_radius = R_eff;                % effective aperture radius
-    DS.max_order = max_order;               % max modal order
-    DS.align_centroid = align_centroid;     % whether or not the target scenes in the survey were axis aligned  
+    DS.pos_samp = pos_samp;                 % image plane samples (should be odd)
+    DS.mom_samp = mom_samp;                 % sub aperture samples (should be odd) [for gram-schmidt basis mainly]
+    DS.R_eff = R_eff;                       % effective aperture radius
+    DS.max_order = max_order;               % max modal order 
     DS.cfg_idx_names = {'Basis Index (b)','Photon Number Index (p)','Aperture Index (a)','Source Number Index (n)','Min Separation Index (m)'};
     DS.cfg_data_names = {'Rayleigh Length','Scene','Measurement Mode Counts','Estimated Scene','Log Likelihood','Error'};
     
     % array properties (parameter scans)
-    DS.num_pho = [5e3,1e4,2e4];
-    DS.basis = {'Gram-Schmidt','Zernike'};
+    DS.num_pho = [2e3,2e4,2e5];
+    DS.basis = {'Gram-Schmidt','Direct-Detection'};
     DS.min_sep_frac = 2.^(linspace(-6,-3,7)); % fractional rayleigh units
-    DS.apertures = apertures;                 % [length]
+    DS.apertures = apertures;                 
     DS.aperture_names = aperture_names;
     DS.num_src = 2:5;
     DS.cfg_size = [numel(DS.basis),numel(DS.num_pho),numel(DS.apertures),numel(DS.num_src),numel(DS.min_sep_frac)];  % the dimensionality of the parameter space range

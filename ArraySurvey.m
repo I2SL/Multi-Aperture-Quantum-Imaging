@@ -38,16 +38,16 @@ function ArraySurvey(array_id,num_workers)
     ap_num = size(aper_coords,1);               % number of sub-apertures
     A_sub = pi*subap_radius^2;                  % subaperture collection area [u^2]
     A_tot = ap_num * A_sub;                     % total collection area of the multi-aperture system [u^2]
-    if ap_num > 1
-        B = pdist(aper_coords);                 % baseline lengths [u]
-        max_B = max([1,B]);                     % max baseline [u]
+    if ap_num>1
+        assert(max(B)>=2*subap_radius);     % check if any apertures overlap.
+        max_B = max(B)+2*subap_radius;      % max baseline (edge-to-edge)[u]
     else
-        max_B = DS.D_eff/DS.ref_unit;           % max baseline [u]
+        max_B = 2*subap_radius;             % max baseline for monolith is just the diameter (edge-to-edge of single aperture)[u]
     end
 
-    % rayleigh lengths
-    rl_sub = 2*pi*1.22;                     % sub-aperture rayleigh length [rad/u]
-    rl = rl_sub/max_B;                      % effective aperture rayleigh length [rad/u]
+    % rayleigh length
+    PSF_width = 4*pi*1.22 / max_B;           % width of the PSF in position space [rad/u]
+    rl = PSF_width/2;                        % aperture rayleigh length [rad/u]
 
     % image plane discretization
     [X,Y] = meshgrid(rl * linspace(-.5,.5,DS.img_samp));       % image plane coordinates [rad/u]

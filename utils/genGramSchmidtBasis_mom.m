@@ -1,8 +1,8 @@
 function GS_basis_mom = genGramSchmidtBasis_mom(max_order,Kx,Ky,d2k)
-% Generates the 2D PSF-Adapted Gram-Schmidt basis for any aperture function
+% Generates the 2D PSF-Adapted Gram-Schmidt basis for any binary aperture function
+% max_order - the maximum order of GS bases desired (number of derivatives to perform in x and y)
 % Kx,Ky - coordinate pairs in K-space over the aperture support (in units of sub-aperture radius)
-% A - The normalized aperture function defined over Kx Ky
-% n_max - max polynomial order
+% d2k - The
 
 num_modes = (max_order+1)^2;
 

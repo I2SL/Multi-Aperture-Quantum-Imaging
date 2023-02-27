@@ -3,34 +3,95 @@ function [est_scene,mode_counts,rl,err] = ...
         n_pho,...                   % mean photon number                   [integer]
         max_order,...               % max modal order                      [integer]
         basis,...                   % basis                                [string] ['Gram-Schmidt','Zernike', 'Direct-Detection']
-        subap_radius,...            % sub-aperture radius                  [double] [units : length]
-        aper_coords,...             % aperture position                    [Mx2]    [units : length] --> col_1 = kx, col_2 = ky   
+        aperture,...                % aperture coordinates and radii       [Mx3] aperture(:,1:2) --> centroid coodrdinates of sub-apertures, aperture(:,3) radius of each sub-aperture 
         scene,...                   % input scene                          [Nx3] scene(:,1:2)->source coordinates [in fractions of rayleigh], scene(:,3)->relative source brightnesses
-        subap_samp,...              % sub-aperure samples along each axis  --> Bounding box for each aperture has dimensions [subap_samp,subap_samp]
-        img_samp,...                % image-plane samples along each axis  --> Image plane for source position estimates has dimensions [img_samp,img_samp]
+        mom_samp,...                % aperture plane sampling density (momentum space)  [integer] [units : samples/length]
+        pos_samp,...                % image-plane sampling density (position space)     [integer] [units : samples/rayleigh] Image plane for source position estimates has dimensions [pos_samp,pos_samp]
         EM_max,...                  % max number of EM iterations          [integer]
         brite_flag,...              % estimate brightness trigger          [boolean]
         visualize...                % visualization trigger                [boolean]
 )
 % static measurement estimation of point-source constellations with multi-aperture systems
+
+% multi-aperture parameters
+ap_num = size(aperture,1);
+aper_coords = aperture(:,1:2);
+aper_rads = aperture(:,3); 
+
+% get the effective aperture diameter
+if ap_num>1
+    B = squareform(pdist(aper_coords));             % sub-aperture pairwise centroid distances
+    D = aper_rads + aper_rads';                     % sub-aperture pairwise radius sums
+    assert(all(triu(B,1) >= triu(D,1),'all'));      % check if any apertures overlap.
     
-% make the sub-aperture length the reference unit
-ref_unit = subap_radius;                % [u]
+    % set the effective aperture diameter to the minimum enclosing circle diameter.
+    cm_coords = aper_coords - mean(aper_coords,1);                          % get centered coordinates (with respect to centroid of centroids -- still need to prove with this works)
+    tangent_pts = cm_coords + cm_coords.*aper_rads./vecnorm(cm_coords,2,2); % candidate tangent points where the enclosing circle might touch
+    [kx_c,ky_c,R_eff] = SmallestEnclosingCircle(tangent_pts(:,1)',tangent_pts(:,2)');
+    D_eff = 2*R_eff;
+else
+    R_eff = aper_rads(1);
+    D_eff = 2*R_eff;                         % set the effective aperture diameter to that of the input aperture
+end
+
+
+
+% get the rayleigh length of the system
+% first zero of Besselj(0,x) should be set so that a source shifted to rl is zero.
+bsj1_zero = pi*1.2197;      %= 3.8317 is the first zero of besselj_1
+rl = 2*pi * 1.2197/D_eff;   % rayleigh length (in rads/length) - the rayleigh length is the radial distance (in image space) from the origin to the first zero of the besselj(1) function rl = bsj1_zero/R_eff;   
+
+
+%{
+xy = [X(:),Y(:)];
+r = vecnorm(xy,2,2);
+
+% sinc-bessel in polar
+J = besselj(1,r.*aper_rads.') ./ r;
+
+% fill in singularities
+J(r==0,:) = aper_rads.'/2;
+
+PSF = 1/sqrt(pi*ap_num) * sum( exp(1i* xy*aper_coords.') .* J  ,2);
+
+PSF2 = reshape( abs(PSF).^2, size(X));
+surf(X,Y,PSF2)
+
+%PSF = @(xy) 1/sqrt(pi*ap_num) * sum( exp(1i* xy*aper_coords.') .* besselj(1,vecnorm(xy,2,2).*aper_rads.') ./ vecnorm(xy,2,2) ,2);
+PSF = @(xy) 1/sqrt(ap_num) * sum( exp(1i* xy*aper_coords.') .* FTzRadial(vecnorm(xy,2,2).*aper_rads.',0) ./ vecnorm(xy,2,2) ,2);
+%}
+
+%{
+% make the sub-aperture diameter the reference unit
+subap_diam = 2*subap_radius;          % [length]
+ref_unit = subap_diam;                % [u]
 
 % (non-dimensionalize) rescale aperture-plane coordinates to the reference unit
+subap_diam = subap_diam/ref_unit;       % 1 [u]
 subap_radius = subap_radius/ref_unit;   % radius of reference sub-apertures [u]
 aper_coords = aper_coords/ref_unit;     % sub-aperture coordinates [u]
+aper_rads = aper_rads/ref_unit;          % sub-aperture radii [u]
 
 % multi-aperture parameters
 ap_num = size(aper_coords,1);           % number of sub-apertures
 A_sub = pi*subap_radius^2;              % subaperture collection area [u^2]
 A_tot = ap_num * A_sub;                 % total collection area of the multi-aperture system [u^2]
-B = pdist(aper_coords);                 % baseline lengths [u]
-max_B = max([1,B]);                     % max baseline [u]
+B = pdist(aper_coords);                 % baseline lengths (center-to-center) [u]
+
+if ap_num>1
+    assert(max(B)>=subap_diam);     % check if any apertures overlap.
+    max_B = max(B)+subap_diam;      % max baseline (edge-to-edge)[u]
+    max_B = max(B);
+else
+    max_B = subap_diam;             % max baseline for monolith is just the diameter (edge-to-edge of single aperture)[u]
+end
 
 % rayleigh lengths
-rl_sub = 2*pi*1.22;                     % sub-aperture rayleigh length [rad/u]
-rl = rl_sub/max_B;                      % effective aperture rayleigh length [rad/u] 
+PSF_width = 1.22 * (2*pi / max_B);       % width of the PSF in position space [rad/u]
+rl = PSF_width/2;                        % aperture rayleigh length [rad/u]
+%rl_sub = 4*pi*1.22 / (2*subap_radius);  % sub-aperture rayleigh length [rad/u]
+%rl = rl_sub/max_B;                      % aperture rayleigh length [rad/u] 
+%}
 
 % source distribution
 % scene = [s_x,s_y,s_b];
@@ -40,10 +101,10 @@ s_x = src_coords(:,1); s_y = src_coords(:,2);
 s_b = scene(:,3);                        % relative source brightnesses
 
 % image plane discretization
-[X,Y] = meshgrid(rl * linspace(-.5,.5,img_samp));       % image plane coordinates [rad/u]
+[X,Y] = meshgrid(rl * linspace(-.5,.5,pos_samp));       % image plane coordinates [rad/u]
 
 % aperture plane discretization
-[Kx,Ky,d2k] = ApertureKxKy(aper_coords,subap_samp);     % Kx [u], Ky [u], d2k [u^2]
+[Kx,Ky,d2k] = ApertureKxKy(aper_coords,aper_rads,mom_samp);     % Kx [u], Ky [u], d2k [u^2]
 
 % make sure min source separation is greater than the resolution of the image plane
 min_sep = min(pdist(src_coords));
@@ -56,6 +117,9 @@ end
 % setup basis
 switch basis
     case 'Gram-Schmidt'
+        
+        % assign A_tot to be the area of tbe discretizedaperture
+        A_tot = numel(Kx)*d2k;
         
         % indices
         [nj,mj] = Indices_GramSchmidt(max_order);
@@ -74,6 +138,9 @@ switch basis
 
     case 'Zernike'
         
+        % assign A_tot to be the true aperture area
+        A_tot = sum(pi*aper_rads.^2);
+        
         % indices
         [nj,mj,vj] = Indices_MixedAperture(max_order,ap_num);
         
@@ -84,7 +151,8 @@ switch basis
         U = dftmtx(ap_num)/sqrt(ap_num);   % a unitary matrix for mixing aperture-local modes
         
         % probability function handle
-        prob_fn = @(xq,yq) ModalProb_MixedAperture([xq,yq],nj,mj,vj,U,aper_coords,A_tot);
+        %prob_fn = @(xq,yq) ModalProb_MixedAperture([xq,yq],nj,mj,vj,U,aper_coords,A_tot);
+        prob_fn = @(xq,yq) ModalProb_MixedAperture([xq,yq],nj,mj,vj,U,aperture);
 
     case 'Direct-Detection'
         
@@ -92,16 +160,16 @@ switch basis
         num_modes = numel(X);
         
         % probability function
-        prob_fn = @(xq,yq) ModalProb_DirectImaging([xq,yq],X,Y,aper_coords);
+        prob_fn = @(xq,yq) ModalProb_DirectImaging([xq,yq],X,Y,aperture);
                 
 end
 
 % get modal probabilities for the given source distribution
 p = sum(s_b .* prob_fn(s_x,s_y),1);
 
-
 % simulate the measurement
-[~, mode_counts] = simulateMeasurement(n_pho, p);
+isPoiss = 1; % add Poisson arrival statistics to the measurment
+[~, mode_counts] = simulateMeasurement(n_pho, p, isPoiss);
 
 % find MLE of scene parameters given the measurement
 [s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,EM_max,brite_flag);
@@ -110,6 +178,7 @@ s_b_im = s_b_trc(:,1:count-1); s_x_im = s_x_trc(:,1:count-1); s_y_im = s_y_trc(:
 % final scene parameter estimates
 s_b_mle = s_b_trc(:,end); s_x_mle = s_x_trc(:,end); s_y_mle = s_y_trc(:,end);
 
+% estimated scene
 est_coords = [s_x_mle,s_y_mle];
 est_brites = s_b_mle;
 est_scene = [est_coords/rl, est_brites];
@@ -125,12 +194,38 @@ if visualize
     
 	% APERTURE
     figs(1) = figure;
-    scatter(Kx,Ky,'filled','blue');            hold on;
-    scatter(0,0,10,'filled','black');   hold off;
+    % plot the aperture sample coordinates
+    scatter(Kx,Ky,3,'filled','blue');     hold on;
+    
+    % plot the origin
+    scatter(0,0,10,'filled','black');               
+    
+    % plot effective aperture for rayleigh length
+    [x_eff,y_eff] = pol2cart(linspace(0,2*pi,1000),R_eff*ones(1,1000));
+    x_eff = x_eff+kx_c;
+    y_eff = y_eff+ky_c;
+    plot(x_eff,y_eff,'red')
+    hold off;
     axis 'equal'
+    xlim((D_eff)*[-.5,.5]+kx_c)
+    ylim((D_eff)*[-.5,.5]+ky_c)
     title('Aperture Configuration','interpreter','latex')
-    xlabel('$k_x \, [\delta]$','interpreter','latex')
-    ylabel('$k_y \, [\delta]$','interpreter','latex')
+    xlabel('$k_x \, [length]$','interpreter','latex')
+    ylabel('$k_y \, [length]$','interpreter','latex')
+    legend({'Multi-Aperture','','Effective Aperture'})
+    
+    
+    % PSF
+    figs(2) = figure;
+    X_psf = 4*X; % X range to display psf over
+    Y_psf = 4*Y; % Y range to display psf over
+    %PSF = MultiAperturePSF([X_psf(:),Y_psf(:)],aper_coords); % PSF
+    PSF = MultiAperturePSF([X_psf(:),Y_psf(:)],aperture);  % PSF
+    PSF2 = reshape(abs(PSF).^2,size(X_psf));               % modulus squared of PSF
+    surf(X_psf/rl,Y_psf/rl,PSF2)
+    xlabel('x [rl]')
+    ylabel('y [rl]')
+    title('$|PSF|^2$','interpreter','latex')
     
     % MODES
     switch basis
@@ -140,11 +235,12 @@ if visualize
             
         case 'Zernike'
             % visualize the Mixed Zernike modes
-            Visualize_MixedAperture(nj,mj,vj,X,Y,rl,U,aper_coords);
+            %Visualize_MixedAperture(nj,mj,vj,X,Y,rl,U,aper_coords);
+            Visualize_MixedAperture(nj,mj,vj,X,Y,rl,U,aperture);
         
         case 'Direct-Detection'
             % visualize the PSF
-            Visualize_PSF2(3*X,3*Y,rl,aper_coords);
+            Visualize_PSF2(3*X,3*Y,rl,aperture);
     end
            
     
@@ -178,7 +274,7 @@ if visualize
 
 
         case 'Direct-Detection'
-            DD_photons = reshape(mode_counts, img_samp*[1,1]);
+            DD_photons = reshape(mode_counts, pos_samp*[1,1]);
             imagesc([min(X(:)),max(X(:))]/rl,[min(Y(:)),max(Y(:))]/rl,DD_photons)
             colorbar
             title({'Direct Detection Measurement',['Total Photons: ',num2str(sum(mode_counts))]});

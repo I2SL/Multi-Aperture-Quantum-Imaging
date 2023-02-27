@@ -56,7 +56,7 @@ function f = ctsIFT_2D(x,y,kx,ky,d2k,F_tilde)
         
     end
     
-    f = 2*gather(f) * 1/(2*pi) * d2k; % not sure why factor of 2 is needed here but it makes the probability in the 0th mode = 1 for 0 source displacement as desired.
+    f = gather(f) * 1/(2*pi) * d2k;
 
 end
 

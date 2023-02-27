@@ -2,9 +2,16 @@ function psi_nm = Basis_GramSchmidt_pos(xy_query,X,Y,GS_basis_pos)
     % computes the GS basis function at the query points (xq,yq) within the
     % discritezation of the image plane defined by X,Y via 2D
     % interpolation.
-       
+    
     xq = xy_query(:,1);
     yq = xy_query(:,2);
+    
+    
+    % throw warning if query points are outside the support of the
+    % interpolation
+    if any(xq(:)>X(:)) || any(xq(:)>X(:)
+        warnign
+    end
     
     n_modes = size(GS_basis_pos,3);
     psi_nm = zeros([numel(xq),n_modes]);  

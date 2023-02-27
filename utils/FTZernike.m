@@ -1,4 +1,5 @@
 function z = FTZernike(r,theta,n,m)
+%function z = FTZernike(r,theta,radius,n,m)
 % returns the evaluation of Fourier Transform of the Zernike Polynomials
 %function and its linear indices
 %
