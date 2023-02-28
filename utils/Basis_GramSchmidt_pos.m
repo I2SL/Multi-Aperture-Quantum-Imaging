@@ -9,8 +9,8 @@ function psi_nm = Basis_GramSchmidt_pos(xy_query,X,Y,GS_basis_pos)
     
     % throw warning if query points are outside the support of the
     % interpolation
-    if any(xq(:)>X(:)) || any(xq(:)>X(:)
-        warnign
+    if any(xq(:)>max(X(:))) || any(xq(:)< min(X(:))) || any(yq(:)>max(Y(:))) || any(xq(:)<min(Y(:)))
+        warning('Some query points for Gram-Schmid basis are outside the defined support.')
     end
     
     n_modes = size(GS_basis_pos,3);

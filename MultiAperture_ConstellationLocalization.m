@@ -283,9 +283,26 @@ if visualize
             axis square
 
     end  
+    
+    
+    
+    % LOG-LIKELIHOOD VS LOCALIZATION ERROR
+    figs(4) = figure;
+    subplot(2,1,1)
+    plot(loglike_trc)
+    title('Likelihood Convergence')
+    xlabel('Iteration')
+    ylabel('Log Likelihood')
+    subplot(2,1,2)
+    plot(err_trc/min_sep)
+    title('Localization Error Convergence')
+    xlabel('Iteration')
+    ylabel('Fractional Localization Error')
+    
+    
 
     % ESTIMATE
-    figs(4) = figure;
+    figs(5) = figure;
     % plot ground truth
     scatter(s_x/rl,s_y/rl,'filled','black'); hold on;
     % plot the intermediate estimates
@@ -307,22 +324,7 @@ if visualize
     legend(names)
     axis square
     
-    % plot the log-likelihood and the localization error as a function of iteration and the
-    % localization
-    figs(5) = figure;
-    subplot(2,1,1)
-    plot(loglike_trc)
-    title('Likelihood Convergence')
-    xlabel('Iteration')
-    ylabel('Log Likelihood')
 
-    
-    subplot(2,1,2)
-    plot(err_trc/min_sep)
-    title('Localization Error Convergence')
-    xlabel('Iteration')
-    ylabel('Fractional Localization Error')
-    
     
     
 end

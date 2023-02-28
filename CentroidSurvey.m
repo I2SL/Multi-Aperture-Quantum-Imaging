@@ -100,7 +100,6 @@ function CentroidSurvey(array_id,num_workers)
             U = dftmtx(ap_num)/sqrt(ap_num);   % a unitary matrix for mixing aperture-local modes
 
             % probability function handle
-            %prob_fn = @(xq,yq) ModalProb_MixedAperture([xq,yq],nj,mj,vj,U,aper_coords,A_tot);
             prob_fn = @(xq,yq) ModalProb_MixedAperture([xq,yq],nj,mj,vj,U,aperture);
 
         case 'Direct-Detection'
@@ -126,39 +125,84 @@ function CentroidSurvey(array_id,num_workers)
         src_coords_frac = genMinDistConstellation(s_b,min_sep_frac,align_centroid); % source coordinates in fractional rayleigh units [rl]
         aligned_scene = [src_coords_frac, s_b];
         
-        % configure centroid-unaligned scene with random displacement
-        ub = 0.5 - max(src_coords_frac,[],1);  % upper-bound to possible shift amount
-        lb = -0.5 + min(src_coords_frac,[],1); % lower-bound to possible shift amount
-        u_rng = ub-lb;                      % range length for shift
-        centroid_shift = u_rng .* rand(1,2) + lb; % random shift amount to centroid
+        % configure centroid-unaligned scene with a random displacement
+        % that stays within the FOV
+        delta_r_max = max(0.5-vecnorm(src_coords_frac,2,2));
+        [c_x,c_y] = pol2cart(2*pi*rand(1),delta_r_max*rand(1));
+        centroid_shift = [c_x,c_y]; 
         unaligned_scene = [src_coords_frac + centroid_shift, s_b];
                 
         % source positions and brightneses
         unaligned_src_coords = rl*unaligned_scene(:,1:2);            % source coordinates [rad/length]
-        s_x = unaligned_src_coords(:,1); s_y = unaligned_src_coords(:,2); 
               
        % sample the number of collected photons
         N = poissrnd(num_pho);                  % total number of collected photons
         N1 = round(sqrt(N));                    % photons allocated for centroid pre-estimate
         
         % direct-imaging probability over unaligned source distribution
-        p_DD = sum(s_b .* ModalProb_DirectImaging(unaligned_src_coords,X,Y,aperture),1);
+        %[X_DD,Y_DD] = meshgrid(D_eff*rl*linspace(-.5,.5,D_eff*DS.pos_samp)); % make the domain over which we perform direct imaging
+        X_DD = X; Y_DD = Y;
+        p_DD = sum(s_b .* ModalProb_DirectImaging(unaligned_src_coords,X_DD,Y_DD,aperture),1);
         
         % collect N1 Direct Imaging photons from the unaligned scene to
         % estimate the centroid
         [pho_xy_id,~] = simulateMeasurement(N1,p_DD,0);
         
         %pho_xy_id = datasample(1:numel(p_DD),N1,'Weights',p_DD);  % get the cell indices in which each photon was detected
-        centroid_est = mean([X(pho_xy_id),Y(pho_xy_id)]/rl);      % estimate the centroid [in rayleigh units]
+        centroid_est = mean([X_DD(pho_xy_id)',Y_DD(pho_xy_id)']/rl,1);      % estimate the centroid [in rayleigh units]
+        
+        % if centroid estimate pushes sources outside of rayleigh FOV then
+        % rescale it back into the FOV
+        if norm(centroid_est)>delta_r_max
+            centroid_est = centroid_est / norm(centroid_est) * delta_r_max;
+        end
+        
+        %{
+        % visualize
+        figure
+        hold on
+        colormap gray
+        d2x_DD = (X_DD(1,2)-X_DD(1,1)).^2;
+        imagesc(D_eff*[-.5,.5],D_eff*[.5,-.5],flipud(reshape(p_DD/d2x_DD,size(X_DD))))
+        cbar = colorbar;
+        scatter(X_DD(pho_xy_id)'/rl,Y_DD(pho_xy_id)'/rl,10,'filled','yellow')
+        scatter(centroid_shift(1),centroid_shift(2),36,'+blue');
+        scatter(centroid_est(1),centroid_est(2),36,'+red');
+        hold off
+        axis equal
+        xlabel('x [rl]')
+        ylabel('y [rl]')
+        xlim(D_eff*[-.5,.5])
+        ylim(D_eff*[-.5,.5])
+        legend({'Photon Arrivals','Centroid','Centroid Estimate'})
+        ylabel(cbar,'Photon Incidence Probability Density') 
+        title({'Centroid Estimation with Direct Detection',['Direct Detection Photons: ',num2str(N1)]})
+        %}
         
         % correct the unaligned scene by recentering to the centroid estimate
-        corrected_scene = [unaligned_src_coords-centroid_est,s_b];
+        corrected_scene = [src_coords_frac+centroid_shift-centroid_est,s_b];
         
         % group the misaligned, corrected, and aligned scenes
-        scene_group = zeros(src_num,3,3);
+        scene_group = zeros(num_src,3,3);
         scene_group(:,:,1) = unaligned_scene;
         scene_group(:,:,2) = corrected_scene;
         scene_group(:,:,3) = aligned_scene;
+        
+        
+        % show the different scenes
+        figure
+        hold on
+        scatter(unaligned_scene(:,1),unaligned_scene(:,2),'filled','blue')
+        scatter(corrected_scene(:,1),corrected_scene(:,2),'filled','red')
+        scatter(aligned_scene(:,1),aligned_scene(:,2),'filled','black')
+        hold off
+        xlim([-.5,.5])
+        ylim([-.5,.5])
+        xlabel('x [rl]')
+        ylabel('y [rl]')
+        title('Target Scenes')
+        legend({'Misaligned Target','Centroid Pre-Estimate Correction','Perfectly Aligned'})
+        
         
         
         % perform modal imaging on all scenes in the scene group
@@ -175,6 +219,7 @@ function CentroidSurvey(array_id,num_workers)
             scene = scene_group(:,:,s);
             s_x = rl* scene(:,1);
             s_y = rl* scene(:,2);
+            src_coords = [s_x,s_y];
             
             % get modal probabilities for the given source distribution
             p_scene = sum(s_b .* prob_fn(s_x,s_y),1);
@@ -192,7 +237,7 @@ function CentroidSurvey(array_id,num_workers)
             for k = 1:EM_cycles 
                 
                 % fine MLE of scene parameters given the measurement
-                [s_b_trc, s_x_trc, s_y_trc, loglike_trc, iters] = EM(mode_counts,num_src,prob_fn,X,Y,rl,EM_iters_max,0)
+                [s_b_trc, s_x_trc, s_y_trc, loglike_trc, iters] = EM(mode_counts,num_src,prob_fn,X,Y,rl,EM_iters_max,0);
                 
                 % final scene parameter estimates
                 s_b_mle = s_b_trc(:,end); s_x_mle = s_x_trc(:,end); s_y_mle = s_y_trc(:,end);

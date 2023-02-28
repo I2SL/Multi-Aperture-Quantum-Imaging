@@ -8,30 +8,28 @@ function DS = DSformat()
     % likelihood            --> [1 x 1 x EM_cycles] array with the likelihoods of the estimate produced at each EM cycle
     % err                   --> [1 x 1 x EM_cycles] array with the fractional localization error of the estimate produced at each EM cycle
 
+    % save directory
+    save_dir = fullfile('Survey_2-27-23_Centroid_Dependence','data_out');
+    
     
     % constants
     trials = 100;       % trials per configuration
-    mom_samp = 67;       % sample density of aperture plane [Gram-Schmidt] [samples/length]
+    mom_samp = 67;      % sample density of aperture plane [Gram-Schmidt] [samples/length]
     pos_samp = 129;     % image plane samples (must be odd!)
     EM_iters_max = 100; % max EM iterations
     EM_cycles = 20;     % number of times to run the EM algorithm (with different initializations) on the same 
     max_order = 5;      % max basis order for GS and Zernike    
-    % align_centroid = 1; % boolean dictacting whether or not the generated scenes are to have centrods aligned with the optical axis
-
+    
     % setup apertures
     D_eff = 30;         % multi-aperture effective diameter [length]
     R_eff = D_eff/2;    % multi-aperture effective radius   [length]
     d = 3;              % sub-aperture diameter             [length]
     r = d/2;            % sub-apeture radius                [length]
-    
     ap3 = [Polygon(3,0,'radius',R_eff-r),r*ones(3,1)];
     ap9 = [Polygon(9,0,'radius',R_eff-r),r*ones(9,1)];
     golay9 = [Golay9(R_eff-r),r*ones(9,1)];    
     apertures = {ap3,ap9,golay9};
-    aperture_names = {'3 Aperture','9 Aperture','Golay-9'};
-
-    % save directory
-    save_dir = fullfile('Survey_2-27-23_Centroid_Dependence','data_out');    
+    aperture_names = {'3 Aperture','9 Aperture','Golay-9'};    
 
     % data structure with some limited functionality
     DS = struct();
@@ -55,7 +53,7 @@ function DS = DSformat()
     DS.min_sep_frac = 2.^(linspace(-6,-3,7)); % fractional rayleigh units
     DS.apertures = apertures;                 
     DS.aperture_names = aperture_names;
-    DS.num_src = 2:5;
+    DS.num_src = 3:5;
     DS.cfg_size = [numel(DS.basis),numel(DS.num_pho),numel(DS.apertures),numel(DS.num_src),numel(DS.min_sep_frac)];  % the dimensionality of the parameter space range
     DS.data = cell(DS.cfg_size);
     

@@ -2,7 +2,7 @@ num_src = 5;
 num_trials = 100000;
 D = [];
 b = ones(num_src,1)/num_src;
-min_sep = 1/8;
+min_sep = 1/5;
 centroid_aligned = 1;
 
 for t = 1:num_trials
@@ -23,6 +23,6 @@ for t = 1:num_trials
 end
 
 histogram(D)
-title({'Chain Link Scene Generation','5 Sources','100K Scenes'})
+title({'Random Root Chain-Link Scene Generation','5 Sources','100K Scenes'})
 ylabel('Counts')
 xlabel('Source Separation [rl]')
