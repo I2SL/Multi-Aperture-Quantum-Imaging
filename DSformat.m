@@ -13,11 +13,11 @@ function DS = DSformat()
     
     
     % constants
-    trials = 100;       % trials per configuration
+    trials = 50;        % trials per configuration
     mom_samp = 67;      % sample density of aperture plane [Gram-Schmidt] [samples/length]
     pos_samp = 129;     % image plane samples (must be odd!)
     EM_iters_max = 100; % max EM iterations
-    EM_cycles = 20;     % number of times to run the EM algorithm (with different initializations) on the same 
+    EM_cycles = 15;     % number of times to run the EM algorithm (with different initializations) on the same measurement
     max_order = 5;      % max basis order for GS and Zernike    
     
     % setup apertures
