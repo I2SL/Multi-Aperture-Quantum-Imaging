@@ -45,7 +45,7 @@ function DS = DSformat()
     DS.mom_samp = mom_samp;                 % sub aperture samples (should be odd) [for gram-schmidt basis mainly]
     DS.R_eff = R_eff;                       % effective aperture radius
     DS.max_order = max_order;               % max modal order 
-    DS.cfg_idx_names = {'Basis Index (b)','Photon Number Index (p)','Aperture Index (a)','Source Number Index (n)','Min Separation Index (m)'};
+    DS.cfg_idx_names = {'Aperture Index (a)','Source Number Index (n)','Min Separation Index (m)','Photon Number Index (p)','Basis Index (b)'};
     DS.cfg_data_names = {'Rayleigh Length','Scene','Measurement Mode Counts','Estimated Scene','Log Likelihood','Error'};
     
     % array properties (parameter scans)

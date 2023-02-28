@@ -158,7 +158,7 @@ function CentroidSurvey(array_id,num_workers)
         [~,mo_id] = max(p_DD);
         mo_psf = [X_DD(mo_id),Y_DD(mo_id)];
         mu_psf = p_DD/sum(p_DD)*[X_DD(:),Y_DD(:)];
-        tolerance = 0.01;
+        tolerance = 0.001;
         if norm(mo_psf - mu_psf) > tolerance
             warning('Centroid estimator may not be the MLE. PSF mode and mean are unequal')
         end
@@ -191,6 +191,17 @@ function CentroidSurvey(array_id,num_workers)
         scene_group(:,:,1,1) = unaligned_scene;
         scene_group(:,:,1,2) = corrected_scene;
         scene_group(:,:,1,3) = aligned_scene;
+        
+        
+        % a container to hold measurements for each scene's centroid config
+        measurement_group = zeros(1,num_modes,1,3);
+        
+        % run expectation maximization on the measurement
+        est_scene = zeros(num_src,3,EM_cycles,3);
+        err = zeros(1,1,EM_cycles,3);
+        loglike = zeros(1,1,EM_cycles,3);
+        EM_iters = zeros(1,1,EM_cycles,3);
+        
         
         %{
         % visualize
@@ -228,8 +239,6 @@ function CentroidSurvey(array_id,num_workers)
         legend({'Misaligned Target','Centroid Pre-Estimate Correction','Perfectly Aligned'})
         %}
         
-        % a container to hold measurements for each scene's centroid config
-        measurement_group = zeros(1,num_modes,1,3);
         
         % perform modal imaging on all scenes in the scene group
         for s = 1:3
@@ -238,11 +247,12 @@ function CentroidSurvey(array_id,num_workers)
             if s==2
                 N2 = N-N1;
             elseif s==1 || s==3
+                N1 = 0;
                 N2 = N;
             end
             
             % get the scene
-            scene = scene_group(:,:,s);
+            scene = scene_group(:,:,1,s);
             s_x = rl* scene(:,1);
             s_y = rl* scene(:,2);
             src_coords = [s_x,s_y];
@@ -254,12 +264,7 @@ function CentroidSurvey(array_id,num_workers)
             [~, mode_counts] = simulateMeasurement(N2, p_scene, 0);
             measurement_group(1,:,1,s) = mode_counts;
             
-            % run expectation maximization on the measurement
-            est_scene = zeros(num_src,3,EM_cycles,3);
-            err = zeros(1,1,EM_cycles,3);
-            loglike = zeros(1,1,EM_cycles,3);
-            EM_iters = zeros(1,1,EM_cycles,3);
-            
+
             % different EM initializations
             tic
             for k = 1:EM_cycles 
@@ -288,8 +293,7 @@ function CentroidSurvey(array_id,num_workers)
         
         % data stucture for trial
         cfg_data(t).rl = rl;
-        cfg_data(t).N1 = N1;
-        cfg_data(t).N2 = N2;
+        cfg_data(t).N = N;
         cfg_data(t).DD_centroid_pho_xy = [x_DD',y_DD'];
         cfg_data(t).centroid = centroid_shift;
         cfg_data(t).centroid_est = centroid_est;
