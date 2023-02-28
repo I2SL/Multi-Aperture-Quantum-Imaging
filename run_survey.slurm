@@ -4,7 +4,7 @@
 ### use standard partition to get priority. Otherwise use windfall
 #SBATCH --partition=standard
 ### Time allowed for job.
-#SBATCH --time=00-24:00:00
+#SBATCH --time=00-72:00:00
 ### Number of nodes assigned to EACH JOB. Not the total number of nodes used.
 #SBATCH --nodes=1
 ### number of tasks
@@ -12,7 +12,7 @@
 ### number of cpus per task
 #SBATCH --cpus-per-task=94
 ### the name of the job
-#SBATCH --job-name=MultiAp_CentroidAligned
+#SBATCH --job-name=MultiAp_CentroidSurvey
 ### memory per CPU
 #SBATCH --mem-per-cpu=5gb
 ### total memory requested = memory per cpu x cpus per task. Better not to use if you have ntasks and cpus per task set
@@ -20,7 +20,7 @@
 ### email the user once job is done
 #SBATCH --mail-user=ndeshler@arizona.edu
 ### setup job array
-#SBATCH --array 1-504
+#SBATCH --array 1-378
 ### output for a job array
 #SBATCH --output=MultiAp_cfg-%a.out
 
@@ -50,4 +50,4 @@
 
 module load matlab
 
-matlab matlab -nodisplay -nosplash -batch "ArraySurvey($SLURM_ARRAY_TASK_ID,94)" output_{$SLURM_ARRAY_TASK_ID}.txt
+matlab matlab -nodisplay -nosplash -batch "CentroidSurvey($SLURM_ARRAY_TASK_ID,94)" output_{$SLURM_ARRAY_TASK_ID}.txt

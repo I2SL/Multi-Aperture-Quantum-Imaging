@@ -17,18 +17,18 @@ function CentroidSurvey(array_id,num_workers)
     mkdir(DS.save_dir)
     
     % get configuration indices
-    [b,p,a,n,m] = ind2sub(DS.cfg_size,array_id);
-    cfg_id = {b,p,a,n,m};
+    [a,n,m,p,b] = ind2sub(DS.cfg_size,array_id);
+    cfg_id = {a,n,m,p,b};
     
     % parfor configuration variables
     trials = DS.trials;
-    EM_iters_max = DS.EM_iters_max;             % number of EM iterations to use per initialization
+    EM_iters_max = DS.EM_iters_max;         % number of EM iterations to use per initialization
     EM_cycles = DS.EM_cycles;               % number of EM initializations to run per measurement
-    basis = DS.basis{b};
-    num_pho = DS.num_pho(p);
     aperture = DS.apertures{a};
     num_src = DS.num_src(n);
     min_sep_frac = DS.min_sep_frac(m);
+    num_pho = DS.num_pho(p);
+    basis = DS.basis{b};
     max_order = DS.max_order;
    
     % multi-aperture parameters
@@ -193,7 +193,7 @@ function CentroidSurvey(array_id,num_workers)
         scene_group(:,:,1,2) = corrected_scene;
         scene_group(:,:,1,3) = aligned_scene;
         
-        
+        %{
         % visualize
         figure
         hold on
@@ -227,7 +227,8 @@ function CentroidSurvey(array_id,num_workers)
         ylabel('y [rl]')
         title('Target Scenes')
         legend({'Misaligned Target','Centroid Pre-Estimate Correction','Perfectly Aligned'})
-
+        %}
+        
         % a container to hold measurements for each scene's centroid config
         measurement_group = zeros(1,num_modes,1,3);
         

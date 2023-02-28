@@ -1,6 +1,7 @@
 function DS = DSformat()
     % DS.cfg_data = {rl, scene, measurement, mle_scene, likelihood, err, EM_iterations};
-    % cfg = [b,p,a,n,m,t]   --> configuration index vector [b = basis index, p = num_pho index, a = aperture index, n = num_src index, m = min_sep index, t = cfg_trials index]
+    % cfg = [a,n,m,p,b] --> configuration index vector [a = aperture index, n = num_src index, m = min_sep index, p = num_pho index, b = basis index]
+    %
     % rl                    --> the rayleigh length of the configuration
     % scene                 --> [n_src X 3 ] array contianing the scene parameters : x = scene(:,1), y = scene(:,2), b = scene(:,3) 
     % measurement           --> [1 X n_modes ] array of photon counts in each mode
@@ -9,7 +10,7 @@ function DS = DSformat()
     % err                   --> [1 x 1 x EM_cycles] array with the fractional localization error of the estimate produced at each EM cycle
 
     % save directory
-    save_dir = fullfile('Survey_2-27-23_Centroid_Dependence','data_out');
+    save_dir = fullfile('Survey_2-28-23_Centroid_Dependence','data_out');
     
     
     % constants
@@ -54,7 +55,7 @@ function DS = DSformat()
     DS.apertures = apertures;                 
     DS.aperture_names = aperture_names;
     DS.num_src = 3:5;
-    DS.cfg_size = [numel(DS.basis),numel(DS.num_pho),numel(DS.apertures),numel(DS.num_src),numel(DS.min_sep_frac)];  % the dimensionality of the parameter space range
+    DS.cfg_size = [numel(DS.apertures),numel(DS.num_src),numel(DS.min_sep_frac),numel(DS.num_pho),numel(DS.basis)]; % the dimensionality of the parameter space range
     DS.data = cell(DS.cfg_size);
     
 end
