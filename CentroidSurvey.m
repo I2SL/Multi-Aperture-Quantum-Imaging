@@ -116,14 +116,13 @@ function CentroidSurvey(array_id,num_workers)
     end
     
     
-    
-    % run parameter scans using matlab's Parallel Computing Toolbox
-    %parpool(num_workers)
-    
     disp(['-------Configuration: ' num2str(array_id),'/',num2str(prod(DS.cfg_size)),'--------'])    
     
-    for t=1:DS.trials
-    %parfor t=1:DS.trials
+    % run parameter scans using matlab's Parallel Computing Toolbox
+    parpool(num_workers)
+    
+    %for t=1:DS.trials
+    parfor t=1:DS.trials
         
         % configure centroid-aligned scene
         align_centroid = 1;
@@ -288,24 +287,18 @@ function CentroidSurvey(array_id,num_workers)
         end
         
         % data stucture for trial
-        data_t.rl = rl;
-        data_t.N1 = N1;
-        data_t.N2 = N2;
-        data_t.DD_centroid_pho_xy = [x_DD',y_DD'];
-        data_t.centroid = centroid_shift;
-        data_t.centroid_est = centroid_est;
-        data_t.measurement = measurement_group;
-        data_t.scene = scene_group;
-        data_t.scene_est = est_scene;
-        data_t.loglike = loglike;
-        data_t.err = err;
-        data_t.EM_iters = EM_iters;
-
-            
-        
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-        % add to data element
-        cfg_data(t) = data_t;    
+        cfg_data(t).rl = rl;
+        cfg_data(t).N1 = N1;
+        cfg_data(t).N2 = N2;
+        cfg_data(t).DD_centroid_pho_xy = [x_DD',y_DD'];
+        cfg_data(t).centroid = centroid_shift;
+        cfg_data(t).centroid_est = centroid_est;
+        cfg_data(t).measurement = measurement_group;
+        cfg_data(t).scene = scene_group;
+        cfg_data(t).scene_est = est_scene;
+        cfg_data(t).loglike = loglike;
+        cfg_data(t).err = err;
+        cfg_data(t).EM_iters = EM_iters;  
 
         % display trial completion
         disp(['Trials Completed: ',num2str(t),'/',num2str(trials)])
