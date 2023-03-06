@@ -52,7 +52,14 @@ s_x_trc = zeros(num_sources,1);  % source x coordinates
 s_y_trc = zeros(num_sources,1);  % source y coordinates
 s_b_trc = zeros(num_sources,1);  % source brightnesses
 loglike_trc = zeros(1,1);       % log likelihood
- 
+
+
+% GPU optimization if available
+if gpuDeviceCount("available") > 0
+    X = gpuArray(X);
+    Y = gpuArray(Y);
+end
+
 % log probability for all source position
 lnP = log(prob_fn(X(:),Y(:)));
 lnP = lnP(:,mode_counts >0);
@@ -145,5 +152,11 @@ end
 if count == n_em_max + 1
     warning('EM reached max number of iterations')
 end
+
+s_b_trc = gather(s_b_trc);
+s_x_trc = gather(s_x_trc);
+s_y_trc = gather(s_y_trc);
+loglike_trc = gather(loglike_trc);
+
 
 end
