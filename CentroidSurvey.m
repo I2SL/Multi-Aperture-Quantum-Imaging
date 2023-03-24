@@ -27,6 +27,12 @@ function CentroidSurvey(array_id,num_workers)
     num_pho = DS.num_pho(p);
     basis = DS.basis{b};
     max_order = DS.max_order;
+    
+    if strcmp(basis,'Direct-Detection')
+        EM_cycles = 1;
+    end
+        
+    
    
     % multi-aperture parameters
     ap_num = size(aperture,1);
@@ -200,10 +206,6 @@ function CentroidSurvey(array_id,num_workers)
         
         % a container to hold measurements for each scene's centroid config
         %measurement_group = zeros(1,num_modes,1,3);
-        
-        if strcmp(basis,'Direct-Detection')
-            EM_cycles = 1;
-        end
         
         
         % run expectation maximization on the measurement
