@@ -1,4 +1,4 @@
-function [s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,n_em_max,brite_flag)
+function [s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,src_coords,prob_fn,X,Y,rl,n_em_max,brite_flag)
 % runs expectation maximization to determine source coordinates and source
 % brightnesses from a measurement.
 %
@@ -53,12 +53,6 @@ s_y_trc = zeros(num_sources,1);  % source y coordinates
 s_b_trc = zeros(num_sources,1);  % source brightnesses
 loglike_trc = zeros(1,1);       % log likelihood
 
-
-% GPU optimization if available
-if gpuDeviceCount("available") > 0
-    X = gpuArray(X);
-    Y = gpuArray(Y);
-end
 
 % log probability for all source position
 lnP = log(prob_fn(X(:),Y(:)));
@@ -133,14 +127,8 @@ while ( ~all((s_x - s_x_trc(:,end)) == 0) || ~all((s_y - s_y_trc(:,end)) == 0) )
             s_b = sum(T,2)/size(T,2); % update source weights
         end
         
-        [s_x,s_y] = MLESourceCoords(X,Y,Q_2D);
-
-        nc = size(s_x,3); % number of candidate source locations
-        if nc > 1
-            % warning('EM iteration recovered degenerate solutions. Selecting first.')
-            s_x = s_x(:,1,1);
-            s_y = s_y(:,1,1);
-        end
+        % get the MLE constellations for the given iteration
+        [s_x,s_y] = MLESourceCoords(X,Y,Q_2D,src_coords,'MinError');
         
     end
     

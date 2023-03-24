@@ -1,4 +1,6 @@
 function psf = MultiAperturePSF(xy_coords,aperture)
+    % returns the psf for a multi-aperture system composed of circular
+    % apertures of various radii
     n = 0;
     m = 0;
     v = 1;

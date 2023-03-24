@@ -34,7 +34,7 @@ function dr_Gamma_pos_xy = dr_GramSchmidt(xy_coords,Kx,Ky,d2k,GS_basis_mom)
 
     
     for  k = 1:n_batches
-        b = b_start(k):b_end(k); % batch indices
+        b = b_start(k):b_end(k); % batch indices 
         
         % evaluation of d/dr FT at the location (x,y)
         FT_exp_xy = exp(1i * ( x(b).*Kx.' + y(b).*Ky.') );

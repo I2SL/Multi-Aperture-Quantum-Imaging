@@ -34,64 +34,10 @@ else
     D_eff = 2*R_eff;                         % set the effective aperture diameter to that of the input aperture
 end
 
-
-
 % get the rayleigh length of the system
 % first zero of Besselj(0,x) should be set so that a source shifted to rl is zero.
 bsj1_zero = pi*1.2197;      %= 3.8317 is the first zero of besselj_1
 rl = 2*pi * 1.2197/D_eff;   % rayleigh length (in rads/length) - the rayleigh length is the radial distance (in image space) from the origin to the first zero of the besselj(1) function rl = bsj1_zero/R_eff;   
-
-
-%{
-xy = [X(:),Y(:)];
-r = vecnorm(xy,2,2);
-
-% sinc-bessel in polar
-J = besselj(1,r.*aper_rads.') ./ r;
-
-% fill in singularities
-J(r==0,:) = aper_rads.'/2;
-
-PSF = 1/sqrt(pi*ap_num) * sum( exp(1i* xy*aper_coords.') .* J  ,2);
-
-PSF2 = reshape( abs(PSF).^2, size(X));
-surf(X,Y,PSF2)
-
-%PSF = @(xy) 1/sqrt(pi*ap_num) * sum( exp(1i* xy*aper_coords.') .* besselj(1,vecnorm(xy,2,2).*aper_rads.') ./ vecnorm(xy,2,2) ,2);
-PSF = @(xy) 1/sqrt(ap_num) * sum( exp(1i* xy*aper_coords.') .* FTzRadial(vecnorm(xy,2,2).*aper_rads.',0) ./ vecnorm(xy,2,2) ,2);
-%}
-
-%{
-% make the sub-aperture diameter the reference unit
-subap_diam = 2*subap_radius;          % [length]
-ref_unit = subap_diam;                % [u]
-
-% (non-dimensionalize) rescale aperture-plane coordinates to the reference unit
-subap_diam = subap_diam/ref_unit;       % 1 [u]
-subap_radius = subap_radius/ref_unit;   % radius of reference sub-apertures [u]
-aper_coords = aper_coords/ref_unit;     % sub-aperture coordinates [u]
-aper_rads = aper_rads/ref_unit;          % sub-aperture radii [u]
-
-% multi-aperture parameters
-ap_num = size(aper_coords,1);           % number of sub-apertures
-A_sub = pi*subap_radius^2;              % subaperture collection area [u^2]
-A_tot = ap_num * A_sub;                 % total collection area of the multi-aperture system [u^2]
-B = pdist(aper_coords);                 % baseline lengths (center-to-center) [u]
-
-if ap_num>1
-    assert(max(B)>=subap_diam);     % check if any apertures overlap.
-    max_B = max(B)+subap_diam;      % max baseline (edge-to-edge)[u]
-    max_B = max(B);
-else
-    max_B = subap_diam;             % max baseline for monolith is just the diameter (edge-to-edge of single aperture)[u]
-end
-
-% rayleigh lengths
-PSF_width = 1.22 * (2*pi / max_B);       % width of the PSF in position space [rad/u]
-rl = PSF_width/2;                        % aperture rayleigh length [rad/u]
-%rl_sub = 4*pi*1.22 / (2*subap_radius);  % sub-aperture rayleigh length [rad/u]
-%rl = rl_sub/max_B;                      % aperture rayleigh length [rad/u] 
-%}
 
 % source distribution
 % scene = [s_x,s_y,s_b];
@@ -118,7 +64,7 @@ end
 switch basis
     case 'Gram-Schmidt'
         
-        % assign A_tot to be the area of tbe discretizedaperture
+        % assign A_tot to be the area of the discretized aperture
         A_tot = numel(Kx)*d2k;
         
         % indices
@@ -172,7 +118,9 @@ isPoiss = 1; % add Poisson arrival statistics to the measurment
 [~, mode_counts] = simulateMeasurement(n_pho, p, isPoiss);
 
 % find MLE of scene parameters given the measurement
-[s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,prob_fn,X,Y,rl,EM_max,brite_flag);
+[s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,src_coords,prob_fn,X,Y,rl,EM_max,brite_flag);
+%[s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM2(mode_counts,num_sources,src_coords,prob_fn,X,Y,rl,EM_max,brite_flag);
+
 % intermediate scene parameter estimates
 s_b_im = s_b_trc(:,1:count-1); s_x_im = s_x_trc(:,1:count-1); s_y_im = s_y_trc(:,1:count-1);
 % final scene parameter estimates
@@ -194,6 +142,8 @@ if visualize
     
 	% APERTURE
     figs(1) = figure;
+    VisualizeAperture(aperture);
+    %{
     % plot the aperture sample coordinates
     scatter(Kx,Ky,3,'filled','blue');     hold on;
     
@@ -213,7 +163,7 @@ if visualize
     xlabel('$k_x \, [length]$','interpreter','latex')
     ylabel('$k_y \, [length]$','interpreter','latex')
     legend({'Multi-Aperture','','Effective Aperture'})
-    
+    %}
     
     % PSF
     figs(2) = figure;

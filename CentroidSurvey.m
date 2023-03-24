@@ -7,9 +7,6 @@ function CentroidSurvey(array_id,num_workers)
         array_id = str2double(array_id);
     end
     
-    % set the random number generator seed
-    rng(array_id)
-    
     % make the DS structure
     DS = DSformat();
     
@@ -59,12 +56,19 @@ function CentroidSurvey(array_id,num_workers)
     % that contains all of the sub-apertures.
     rl = 2*pi * 1.2197/D_eff; % rayleigh length in units of [rads/length] 
     
-    % image plane discretization
-    [X,Y] = meshgrid(rl * linspace(-.5,.5,DS.pos_samp));       % image plane coordinates [rad/u]
+    % Gram-Schmidt basis image pland discretization (only has to be defined
+    % over sub-rayleigh regime if the scene is sub-rayleigh)
+    [X_GS,Y_GS] = meshgrid(rl * linspace(-.5,.5,DS.pos_samp));       % image plane coordinates [rad/u]
 
+    % direct detection image plane discretization
+    lam = D_eff/min(aper_rads);     % only consider PSF up to the first zero of the largest bessel function (the rayleigh limit of the smallest aperture) which covers most of the probability in the PSF
+    [X_DD,Y_DD] = meshgrid(lam*rl*linspace(-.5,.5,round(lam*DS.pos_samp))); % make the domain over which we perform direct imaging
+    
+    
     % make sure min source separation is greater than the resolution of the image plane
-    dx = X(1,2) - X(1,1);
-    if min_sep_frac < dx/rl
+    dx_GS = X_GS(1,2) - X_GS(1,1);
+    dx_DD = X_DD(1,2) - X_DD(1,1);
+    if min_sep_frac < dx_GS/rl || min_sep_frac < dx_DD/rl
         warning('Image plane discretization is coarser than minimum source separation')
     end
     
@@ -84,11 +88,11 @@ function CentroidSurvey(array_id,num_workers)
 
             % Create Gram-Schmidt basis
             GS_basis_mom = genGramSchmidtBasis_mom(DS.max_order,Kx,Ky,d2k);              % basis functions in momentum space
-            GS_basis_pos = Basis_GramSchmidt_mom([X(:),Y(:)],Kx,Ky,d2k,GS_basis_mom);    % basis functions in position space
+            GS_basis_pos = Basis_GramSchmidt_mom([X_GS(:),Y_GS(:)],Kx,Ky,d2k,GS_basis_mom);    % basis functions in position space
 
             % probability function
-            GS_basis_pos = reshape(GS_basis_pos,[size(X),size(GS_basis_pos,2)]);                    % 2D basis matrix stack
-            prob_fn = @(xq,yq) ModalProb_GramSchmidt_pos([xq,yq],X,Y,GS_basis_pos,A_tot);
+            GS_basis_pos = reshape(GS_basis_pos,[size(X_GS),size(GS_basis_pos,2)]);                    % 2D basis matrix stack
+            prob_fn = @(xq,yq) ModalProb_GramSchmidt_pos([xq,yq],X_GS,Y_GS,GS_basis_pos,A_tot);
 
 
         case 'Zernike'
@@ -108,10 +112,10 @@ function CentroidSurvey(array_id,num_workers)
         case 'Direct-Detection'
             
             % number of modes
-            num_modes = numel(X); 
+            num_modes = numel(X_DD); 
 
             % probability function
-            prob_fn = @(xq,yq) ModalProb_DirectImaging([xq,yq],X,Y,aperture);
+            prob_fn = @(xq,yq) ModalProb_DirectImaging([xq,yq],X_DD,Y_DD,aperture);
 
     end
     
@@ -119,11 +123,15 @@ function CentroidSurvey(array_id,num_workers)
     disp(['-------Configuration: ' num2str(array_id),'/',num2str(prod(DS.cfg_size)),'--------'])    
     
     % run parameter scans using matlab's Parallel Computing Toolbox
-    parpool(num_workers)
+    %parpool(num_workers)
     
-    %for t=1:DS.trials
-    parfor t=1:DS.trials
+    for t=1:DS.trials
+    %parfor t=1:DS.trials
         
+        % set the random number generator seed (must include the parallel
+        % worker in the seed for different instances to develop different scenes)
+        rng(array_id + t)
+    
         % configure centroid-aligned scene
         align_centroid = 1;
         s_b = ones(num_src, 1) / num_src;    % relative source brightnesses
@@ -149,8 +157,6 @@ function CentroidSurvey(array_id,num_workers)
         N1 = round(N/2);                        % photons allocated for centroid pre-estimate (Grace et. al. 2020 limit for deep sub-rayleigh)
         
         % direct-imaging probability over unaligned source distribution
-        lam = D_eff/min(aper_rads);     % only consider PSF up to the first zero of the largest bessel function (the rayleigh limit of the smallest aperture)
-        [X_DD,Y_DD] = meshgrid(lam*rl*linspace(-.5,.5,round(lam*DS.pos_samp))); % make the domain over which we perform direct imaging
         p_DD = sum(s_b .* ModalProb_DirectImaging(unaligned_src_coords,X_DD,Y_DD,aperture),1);
         
         % check if the mode and mean of the PSF are the same. Otherwise the
@@ -158,7 +164,7 @@ function CentroidSurvey(array_id,num_workers)
         [~,mo_id] = max(p_DD);
         mo_psf = [X_DD(mo_id),Y_DD(mo_id)];
         mu_psf = p_DD/sum(p_DD)*[X_DD(:),Y_DD(:)];
-        tolerance = 0.001;
+        tolerance = 0.01;
         if norm(mo_psf - mu_psf) > tolerance
             warning('Centroid estimator may not be the MLE. PSF mode and mean are unequal')
         end
@@ -166,18 +172,17 @@ function CentroidSurvey(array_id,num_workers)
         % collect N1 Direct Imaging photons from the unaligned scene to
         % estimate the centroid
         [pho_xy_id,~] = simulateMeasurement(N1,p_DD,0);
-        x_DD = X_DD(pho_xy_id);
-        y_DD = Y_DD(pho_xy_id);
+        x_DD_centroid = X_DD(pho_xy_id);
+        y_DD_centroid = Y_DD(pho_xy_id);
         
         %pho_xy_id = datasample(1:numel(p_DD),N1,'Weights',p_DD);  % get the cell indices in which each photon was detected
-        centroid_est = mean([x_DD',y_DD']/rl,1);      % estimate the centroid [in rayleigh units]
+        centroid_est = mean([x_DD_centroid',y_DD_centroid']/rl,1);      % estimate the centroid [in rayleigh units]
         
         % correct the unaligned scene by recentering to the centroid estimate
         corrected_scene = [(centroid_shift-centroid_est) + src_coords_frac,s_b];
         
         % if any of the sources in the corrected scene fall outside the
-        % FOV, then
-        % outside of the rayleigh FOV 
+        % FOV, then snap the correction back into the FOV
         if any(vecnorm(corrected_scene(:,1:2),2,2) > 0.5)
             u = (centroid_shift-centroid_est) / norm(centroid_shift-centroid_est);
             delta = (.5-max(vecnorm(src_coords_frac,2,2))) * (1-1e-4)*u ;
@@ -194,7 +199,12 @@ function CentroidSurvey(array_id,num_workers)
         
         
         % a container to hold measurements for each scene's centroid config
-        measurement_group = zeros(1,num_modes,1,3);
+        %measurement_group = zeros(1,num_modes,1,3);
+        
+        if strcmp(basis,'Direct-Detection')
+            EM_cycles = 1;
+        end
+        
         
         % run expectation maximization on the measurement
         est_scene = zeros(num_src,3,EM_cycles,3);
@@ -257,21 +267,41 @@ function CentroidSurvey(array_id,num_workers)
             s_y = rl* scene(:,2);
             src_coords = [s_x,s_y];
             
-            % get modal probabilities for the given source distribution
-            p_scene = sum(s_b .* prob_fn(s_x,s_y),1);
+            % simulate the measurement
+            switch basis
+                case 'Direct-Detection'
+                    % sample photon arrivals from the probability
+                    % distribution given by the ground truth sources and
+                    % the aperture configuration
+                	[pho_xy_id, mode_counts] = simulateMeasurement(N2, p_DD, 0);
+                    x_DD = X_DD(pho_xy_id);
+                    y_DD = Y_DD(pho_xy_id);
+                otherwise
+                    % get modal probabilities for the given source distribution
+                    p_modes = sum(s_b .* prob_fn(s_x,s_y),1);
+                    [~, mode_counts] = simulateMeasurement(N2, p_modes, 0);   
+            end
             
-             % simulate the modal measurement
-            [~, mode_counts] = simulateMeasurement(N2, p_scene, 0);
-            measurement_group(1,:,1,s) = mode_counts;
+            % store measurement
+            %measurement_group(1,:,1,s) = mode_counts;
             
-
             % different EM initializations
             tic
             for k = 1:EM_cycles 
                 
-                % fine MLE of scene parameters given the measurement
-                [s_b_trc, s_x_trc, s_y_trc, loglike_trc, iters] = EM(mode_counts,num_src,prob_fn,X,Y,rl,EM_iters_max,0);
-                
+                % find MLE of scene parameters given the measurement
+                switch basis 
+                    case 'Direct-Detection'
+                        psf_fn = @(xy) MultiAperturePSF(xy,aperture);
+                        [s_b_trc, s_x_trc, s_y_trc, iters] = EM_DD([x_DD',y_DD'],num_src,psf_fn,rl,EM_iters_max,0);                        
+                        loglike_trc = 0;
+                        % compute log likelihood of final estimate
+                        % p_DD_est = sum(s_b_trc(:,end) .* ModalProb_DirectImaging([s_x_trc(:,end),s_y_trc(:,end)],X_DD,Y_DD,aperture),1);
+                        % loglike_trc = sum(log(p_DD_est(pho_xy_id)/sum(p_DD_est)));
+                    otherwise
+                    [s_b_trc, s_x_trc, s_y_trc, loglike_trc, iters] = EM(mode_counts,num_src,src_coords,prob_fn,X_GS,Y_GS,rl,EM_iters_max,0);                        
+                end
+
                 % final scene parameter estimates
                 s_b_mle = s_b_trc(:,end); s_x_mle = s_x_trc(:,end); s_y_mle = s_y_trc(:,end);
                 
@@ -287,17 +317,17 @@ function CentroidSurvey(array_id,num_workers)
                 EM_iters(1,1,k,s) = iters;                                % EM iterations
             end 
             toc
-            disp([num2str(DS.EM_cycles),' EM cycles completed.'])
+            disp([num2str(EM_cycles),' EM cycles completed.'])
 
         end
         
         % data stucture for trial
         cfg_data(t).rl = rl;
         cfg_data(t).N = N;
-        cfg_data(t).DD_centroid_pho_xy = [x_DD',y_DD'];
+        cfg_data(t).DD_centroid_pho_xy = [x_DD_centroid',y_DD_centroid'];
         cfg_data(t).centroid = centroid_shift;
         cfg_data(t).centroid_est = centroid_est;
-        cfg_data(t).measurement = measurement_group;
+        %cfg_data(t).measurement = measurement_group;
         cfg_data(t).scene = scene_group;
         cfg_data(t).scene_est = est_scene;
         cfg_data(t).loglike = loglike;
