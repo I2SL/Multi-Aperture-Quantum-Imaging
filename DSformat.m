@@ -10,7 +10,7 @@ function DS = DSformat()
     % err                   --> [1 x 1 x EM_cycles] array with the fractional localization error of the estimate produced at each EM cycle
 
     % save directory
-    save_dir = fullfile('Survey_3-22-23_Centroid_Dependence_3xpho','data_out');
+    save_dir = fullfile('Survey_3-29-23_Centroid_Dependence_2kpho','data_out');
     
     
     % constants
@@ -49,7 +49,7 @@ function DS = DSformat()
     DS.cfg_data_names = {'Rayleigh Length','Scene','Measurement Mode Counts','Estimated Scene','Log Likelihood','Error'};
     
     % array properties (parameter scans)
-    DS.num_pho = [6e3,6e4,6e5];
+    DS.num_pho = [2e3,2e4,2e5];
     DS.basis = {'Gram-Schmidt','Direct-Detection'};
     DS.min_sep_frac = 2.^(linspace(-6,-3,7)); % fractional rayleigh units
     DS.apertures = apertures;                 
