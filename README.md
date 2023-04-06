@@ -28,7 +28,7 @@ To run a single estimation task, open the `run.m` file. An example is already pr
 scene;              % input scene.                         [Nx3 matrix] Columns 1 and 2 are the x and y coordinates of the N sources [units : fractional rl]. Column 3 contains the relative brightness of each source. The sum of values in column 3 should equal 1.
 n_pho;              % mean photon number                   [integer]
 max_order;          % max modal order                      [integer]
-basis;  % basis                                [string] ['Gram-Schmidt','Zernike', 'Direct-Detection']
+basis;              % basis                                [string] ['Gram-Schmidt','Zernike', 'Direct-Detection']
 subap_radius;       % sub-aperture radius                  [double] [units : length]
 aper_coords;        % sub-aperture centroid positions      [Mx2 matrix] [units : length] columns 1 and 2 are the kx and ky coordinates respectively of the centroids for M circular apertures
 mom_samp;           % sub-aperture sampling density along each axis in k-space [double]
