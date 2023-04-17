@@ -128,7 +128,8 @@ while ( ~all((s_x - s_x_trc(:,end)) == 0) || ~all((s_y - s_y_trc(:,end)) == 0) )
         end
         
         % get the MLE constellations for the given iteration
-        [s_x,s_y] = MLESourceCoords(X,Y,Q_2D,src_coords,'MinError');
+        %[s_x,s_y] = MLESourceCoords(X,Y,Q_2D,src_coords,'MinError');
+        [s_x,s_y] = MLESourceCoords(X,Y,Q_2D,src_coords,'Both');
         
     end
     

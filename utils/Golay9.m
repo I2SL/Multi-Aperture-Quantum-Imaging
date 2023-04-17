@@ -10,9 +10,9 @@ function aper_coords  = Golay9(R)
     rho = [R1; R2; R3];   % golay-9 radii 
 
     tri = linspace(0,(2*pi)*2/3,3)' + pi/2;
-    a1 = (2*pi/3)*0/3 + tri;    % angular coordinates for inner circle
+    a3 = (2*pi/3)*0/3 + tri;    % angular coordinates for inner circle
     a2 = (2*pi/3)*1/3 + tri;    % angular coordiantes for middle circle
-    a3 = (2*pi/3)*2/3 + tri;    % angular coordinates for outer circle
+    a1 = (2*pi/3)*2/3 + tri;    % angular coordinates for outer circle
     phi = [a1; a2; a3];   % golay-9 angles 
     
     [a_kx, a_ky] = pol2cart(phi,rho);

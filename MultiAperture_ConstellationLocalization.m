@@ -115,11 +115,15 @@ p = sum(s_b .* prob_fn(s_x,s_y),1);
 
 % simulate the measurement
 isPoiss = 1; % add Poisson arrival statistics to the measurment
-[~, mode_counts] = simulateMeasurement(n_pho, p, isPoiss);
+[pho_xy_id, mode_counts] = simulateMeasurement(n_pho, p, isPoiss);
 
 % find MLE of scene parameters given the measurement
-[s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,src_coords,prob_fn,X,Y,rl,EM_max,brite_flag);
-%[s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM2(mode_counts,num_sources,src_coords,prob_fn,X,Y,rl,EM_max,brite_flag);
+if strcmp(basis,'Direct-Detection')
+    [s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM_DD([X(pho_xy_id)',Y(pho_xy_id)'],num_sources,aperture,rl,EM_max,brite_flag);   
+    %[s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM_DD(mode_counts,num_sources,src_coords,prob_fn,X,Y,rl,EM_max,brite_flag);
+else
+    [s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,src_coords,prob_fn,X,Y,rl,EM_max,brite_flag);
+end
 
 % intermediate scene parameter estimates
 s_b_im = s_b_trc(:,1:count-1); s_x_im = s_x_trc(:,1:count-1); s_y_im = s_y_trc(:,1:count-1);
@@ -143,33 +147,11 @@ if visualize
 	% APERTURE
     figs(1) = figure;
     VisualizeAperture(aperture);
-    %{
-    % plot the aperture sample coordinates
-    scatter(Kx,Ky,3,'filled','blue');     hold on;
-    
-    % plot the origin
-    scatter(0,0,10,'filled','black');               
-    
-    % plot effective aperture for rayleigh length
-    [x_eff,y_eff] = pol2cart(linspace(0,2*pi,1000),R_eff*ones(1,1000));
-    x_eff = x_eff+kx_c;
-    y_eff = y_eff+ky_c;
-    plot(x_eff,y_eff,'red')
-    hold off;
-    axis 'equal'
-    xlim((D_eff)*[-.5,.5]+kx_c)
-    ylim((D_eff)*[-.5,.5]+ky_c)
-    title('Aperture Configuration','interpreter','latex')
-    xlabel('$k_x \, [length]$','interpreter','latex')
-    ylabel('$k_y \, [length]$','interpreter','latex')
-    legend({'Multi-Aperture','','Effective Aperture'})
-    %}
     
     % PSF
     figs(2) = figure;
     X_psf = 4*X; % X range to display psf over
     Y_psf = 4*Y; % Y range to display psf over
-    %PSF = MultiAperturePSF([X_psf(:),Y_psf(:)],aper_coords); % PSF
     PSF = MultiAperturePSF([X_psf(:),Y_psf(:)],aperture);  % PSF
     PSF2 = reshape(abs(PSF).^2,size(X_psf));               % modulus squared of PSF
     surf(X_psf/rl,Y_psf/rl,PSF2)
@@ -273,9 +255,6 @@ if visualize
     names(:) = {''}; names(1) = {'Ground Truth'}; names(end) = {'EM Estimate'};
     legend(names)
     axis square
-    
-
-    
     
 end
 

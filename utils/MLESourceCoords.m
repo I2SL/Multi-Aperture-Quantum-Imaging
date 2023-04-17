@@ -72,6 +72,33 @@ function [s_x,s_y] = MLESourceCoords(X,Y,Q,src_coords,method)
                 scatter(constellations(:,1,i),constellations(:,2,i),'filled');
             end
             %}
+            
+        case 'Both'
+            % model the sources as electrostatic charges and compute the potential energy of the configuration
+            charge_PE = zeros(size(Z,1),1); 
+            for j = 1:nc
+                charge_PE(j) = sum(1./pdist(constellations(:,:,j)));  % potential energy of a system of point charges
+            end
+            
+            % constellations with the greates "spread" are the minimum electrostatic energy configurations
+            spread = 1./charge_PE;
+            c = (spread == max(spread));    % candidate constellation indices
+            constellations = constellations(:,:,c);
+            
+            % select from the final degenerate solutions based on minimum error solution (this is cheating a bit)
+            % there are always 2 reflection symmetric solutions at the end.
+            % This step just chooses one of the two reflections. You could
+            % argue that this step is valid if the second moments
+            % of the constellation along x and y are pre-estimated
+            % using direct detection.
+            nc = nnz(c);
+            loc_err = zeros(1,nc);
+            for i = 1:nc   
+                loc_err(i) = LocalizationError(src_coords,constellations(:,:,i));
+            end
+            [~, sel_i] = min(loc_err);  
+            s_x = constellations(:,1,sel_i);
+            s_y = constellations(:,2,sel_i);        
     end
     
     

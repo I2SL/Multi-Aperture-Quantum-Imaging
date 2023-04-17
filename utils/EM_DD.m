@@ -1,4 +1,4 @@
-function [s_b_trc, s_x_trc, s_y_trc, count] = EM_DD(pho_xy, num_sources, psf_fn, rl, n_em_max, brite_flag)
+function [s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM_DD(pho_xy, num_sources, aperture, rl, n_em_max, brite_flag)
 % A fast implementation of EM for direct detection.
 % The underlying mathematics require that the |psf|^2 has mean equal to
 % mode. This allows us to forego discretizing the image plane and finding a
@@ -13,9 +13,10 @@ function [s_b_trc, s_x_trc, s_y_trc, count] = EM_DD(pho_xy, num_sources, psf_fn,
 % ------------------------
 % pho_xy        : Nx2 matrix of photon arrival locations at the image plane
 % num_sources   : number of sources in the scene
-% psf_fn        : function handle the system psf
+% aperture      : the system aperture configuration
 % n_em_max      : maximum number of EM iterations allowed
 % brite_flag    : a boolean indicating whether brightnesses are to be estimated
+
 
 % initialize source positions
 s_xy = rl/4*(rand(num_sources,2)-.5);
@@ -23,9 +24,10 @@ s_xy = rl/4*(rand(num_sources,2)-.5);
 % initialize source weights
 s_b = ones(num_sources,1)/num_sources;
 
-% keep track of source coordinate, brightnesses
+% keep track of source coordinates, brightnesses, and log likelihood
 s_xy_trc = zeros(num_sources,2);    % source xy coordinates
 s_b_trc = zeros(num_sources,1);     % source brightnesses
+loglike_trc = zeros(1);             % loglikelihood of constellation estimate
 
 % GPU optimization if available
 if gpuDeviceCount("available") > 0
@@ -35,18 +37,22 @@ end
 count = 0;
 while (~all(s_xy - s_xy_trc(:,:,end)==0,'all')) && count <= n_em_max
     
-    
-    % keep track of estimates per iteration
+    % track of estimate
     s_b_trc(:,count+1) = s_b;
     s_xy_trc(:,:,count+1) = s_xy;
-    
 
+    
     % E-step
     P_rj = zeros(num_sources, size(pho_xy,1));              % probability of photon arrival position r given it was emitted from source j
     for j = 1:num_sources
-        P_rj(j,:) = abs(psf_fn(pho_xy - s_xy(j,:)).').^2;
+        P_rj(j,:) = abs(MultiAperturePSF(pho_xy - s_xy(j,:),aperture).').^2;
+        
     end
     weights = (P_rj .* s_b) ./ sum(P_rj .* s_b , 1);        % source assignment probabilities. Each column of the weights matrix is the probability distribution over the source origin for a photon
+    
+    
+    % save log likelihood of configuration     
+    loglike_trc(count+1) = sum(log(sum(P_rj .* s_b,1)),2); % + const.
     
     % M-step
     if brite_flag
@@ -56,7 +62,7 @@ while (~all(s_xy - s_xy_trc(:,:,end)==0,'all')) && count <= n_em_max
 
     % increment iteration count
     count = count + 1;   
-    
+        
 end
 
 if count == n_em_max + 1
