@@ -10,7 +10,7 @@ function DS = DSformat()
     % err                   --> [1 x 1 x EM_cycles] array with the fractional localization error of the estimate produced at each EM cycle
 
     % save directory
-    save_dir = fullfile('Survey_4-16-23_9ap_configs_src_exitance','data_out');
+    save_dir = fullfile('Survey_4-16-23_9ap_configs_src_exitance_Mono_addendum','data_out');
     
     % constants
     trials = 50;        % trials per configuration
@@ -34,10 +34,11 @@ function DS = DSformat()
     mono = [0,0,r];
     plus9 = [PlusAperture(9,R_eff-r),r*ones(9,1)];
     ring9 = [Polygon(9,0,'radius',R_eff-r),r*ones(9,1)];
-    golay9 = [Golay9(R_eff-r),r*ones(9,1)];    
+    golay9 = [Golay9(R_eff-r),r*ones(9,1)];
     
-    apertures = {mono,plus9,ring9,golay9};
-    aperture_names = {'Monolith','Plus 9','Ring 9','Golay-9'};    
+    
+    apertures = {mono};
+    aperture_names = {'mono_9PhoFlux'};    
     
     % data structure with some limited functionality
     DS = struct();
@@ -57,7 +58,7 @@ function DS = DSformat()
     
     
     % array properties (parameter scans)
-    DS.num_pho = [1e4,1e5,1e6];    % mean photon count
+    DS.num_pho = 0.0900*[1e4,1e5,1e6];    % mean photon count
     DS.basis = {'Gram-Schmidt','Direct-Detection'};
     DS.min_sep_frac = 2.^(linspace(-6,-3,7)); % fractional rayleigh units
     DS.apertures = apertures;                 
