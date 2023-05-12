@@ -6,6 +6,7 @@ function Visualize_GramSchmidt(nj,mj,X,Y,rl,phi_nm)
     
     figure
     t = tiledlayout(numel(nn),numel(mm));
+    %t = tiledlayout(4,1);
     t.TileSpacing = 'compact';
     t.Padding = 'compact';
     
@@ -21,11 +22,11 @@ function Visualize_GramSchmidt(nj,mj,X,Y,rl,phi_nm)
 
         %xticks([1,ceil(size(phi_nm,2)/2),size(phi_nm,2)]);
         %xticklabels([-1/2,0,1/2])
-        xlabel('x/\sigma')
+        xlabel('$x/\sigma$','interpreter','latex')
 
         %yticks([1,ceil(size(phi_nm,1)/2),size(phi_nm,1)]);
         %yticklabels([-1/2,0,1/2])
-        ylabel('y/\sigma')
+        ylabel('$y/\sigma$','interpreter','latex')
     end
     
 end

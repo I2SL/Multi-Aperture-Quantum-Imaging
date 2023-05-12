@@ -58,7 +58,7 @@ function DS = DSformat()
     
     
     % array properties (parameter scans)
-    DS.num_pho = 0.0900*[1e4,1e5,1e6];    % mean photon count
+    DS.num_pho = [1e4,1e5,1e6];    % mean photon count
     DS.basis = {'Gram-Schmidt','Direct-Detection'};
     DS.min_sep_frac = 2.^(linspace(-6,-3,7)); % fractional rayleigh units
     DS.apertures = apertures;                 

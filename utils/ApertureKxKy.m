@@ -17,7 +17,8 @@ Ky = [];
 for j = 1:num_apertures
     % bounding box for each sub-aperture
     r_j = aper_rads(j);             % radius of j'th aperture
-    s_j = ceil(r_j*samp_dense);     % number of samples along diameter of aperture
+    %s_j = ceil(r_j*samp_dense);    % number of samples along diameter of aperture
+    s_j = ceil(2*r_j*samp_dense);   % number of samples along diameter of aperture
     s_j = s_j + ~mod(s_j,2);        % make sure the number of samples is odd
     [kx,ky] = meshgrid(linspace(-r_j,r_j,s_j)); 
     

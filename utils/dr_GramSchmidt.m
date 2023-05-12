@@ -42,6 +42,6 @@ function dr_Gamma_pos_xy = dr_GramSchmidt(xy_coords,Kx,Ky,d2k,GS_basis_mom)
         dr_Gamma_pos_xy(b,:) =  dr_FT_exp_xy * GS_basis_mom;
     end
     
-    dr_Gamma_pos_xy = 2*gather(dr_Gamma_pos_xy) * 1/(2*pi) * d2k;  % not sure why factor of 2 is needed here but it makes the probability in the 0th mode = 1 for 0 source displacement as desired.
+    dr_Gamma_pos_xy = gather(dr_Gamma_pos_xy) * 1/(2*pi) * d2k;
     
 end
