@@ -113,11 +113,11 @@ function DarkCurrentSurvey(array_id,num_workers)
     disp(['-------Configuration: ' num2str(array_id),'/',num2str(prod(DS.cfg_size)),'--------'])    
     
     
-    for t=1:DS.trials
+    %for t=1:DS.trials
     
     % run parameter scans using matlab's Parallel Computing Toolbox
-    %parpool(num_workers)
-    %parfor t=1:trials
+    parpool(num_workers)
+    parfor t=1:trials
         
         % set the random number generator seed (must include the parallel
         % worker in the seed for different instances to develop different scenes)

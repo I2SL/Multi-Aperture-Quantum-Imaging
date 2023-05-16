@@ -12,7 +12,7 @@
 ### number of cpus per task
 #SBATCH --cpus-per-task=94
 ### the name of the job
-#SBATCH --job-name=MultiAp_CentroidSurvey
+#SBATCH --job-name=MultiAp_DarkCurrent
 ### memory per CPU
 #SBATCH --mem-per-cpu=5gb
 ### total memory requested = memory per cpu x cpus per task. Better not to use if you have ntasks and cpus per task set
@@ -20,7 +20,7 @@
 ### email the user once job is done
 #SBATCH --mail-user=ndeshler@arizona.edu
 ### setup job array
-#SBATCH --array 1,73,19,47,92,39,21
+#SBATCH --array 1-240
 ### output for a job array
 #SBATCH --output=MultiAp_cfg-%a.out
 
@@ -50,4 +50,4 @@
 
 module load matlab
 
-matlab matlab -nodisplay -nosplash -batch "Ap9Survey($SLURM_ARRAY_TASK_ID,94)" output_{$SLURM_ARRAY_TASK_ID}.txt
+matlab matlab -nodisplay -nosplash -batch "DarkCurrentSurvey($SLURM_ARRAY_TASK_ID,94)" output_{$SLURM_ARRAY_TASK_ID}.txt
