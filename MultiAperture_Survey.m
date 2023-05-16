@@ -4,7 +4,7 @@ addpath('utils/')
 
 % constants
 timestamp = datetime;
-trials = 94;        % trials per configuration
+trials = 50;        % trials per configuration
 subap_samp = 101;   % samples per subaperture [Gram-Schmidt] (must be odd!)
 img_samp = 101;     % image plane samples (must be odd!)
 EM_max = 100;       % max EM iterations
@@ -12,7 +12,7 @@ EM_cycles = 10;     % number of times to run the EM algorithm (with different in
 max_order = 5;      % max basis order for GS and Zernike       
 
 % setup apertures
-D_eff = 30;     % multi-aperture effective diameter [length]
+D_eff = 20;     % multi-aperture effective diameter [length]
 R_eff = D_eff/2;    % multi-aperture effective radius   [length]
 d = 3;      % sub-aperture diameter             [length]
 r = d/2;    % sub-apeture radius                [length]

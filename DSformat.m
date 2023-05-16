@@ -10,7 +10,7 @@ function DS = DSformat()
     % err                   --> [1 x 1 x EM_cycles] array with the fractional localization error of the estimate produced at each EM cycle
 
     % save directory
-    save_dir = fullfile('Survey_4-16-23_9ap_configs_src_exitance_Mono_addendum','data_out');
+    save_dir = fullfile('Dark_Current_Analysis','data_out');
     
     % constants
     trials = 50;        % trials per configuration
@@ -21,24 +21,24 @@ function DS = DSformat()
     max_order = 5;      % max basis order for GS and Zernike    
     
     % setup apertures
-    D_eff = 30;         % multi-aperture effective diameter [length]
+    A = 7;              % area budget   [length]
+    D_eff = 20;         % multi-aperture effective diameter [length]
     R_eff = D_eff/2;    % multi-aperture effective radius   [length]
-    d = 3;              % sub-aperture diameter             [length]
-    r = d/2;            % sub-apeture radius                [length]
+    r = @(n_ap) sqrt(A/pi/n_ap);  % sub-apeture radius                [length]
     
     
-    ap3 = [Polygon(3,0,'radius',R_eff-r),r*ones(3,1)];
-    ring6 = [Polygon(6,0,'radius',R_eff-r),r*ones(6,1)];
-    ring12 = [Polygon(12,0,'radius',R_eff-r),r*ones(12,1)];
+    %ap3 = [Polygon(3,0,'radius',R_eff-r(3)),r(3)*ones(3,1)];
+    %ring6 = [Polygon(6,0,'radius',R_eff-r(6)),r(6)*ones(6,1)];
+    %ring12 = [Polygon(12,0,'radius',R_eff-r(12)),r(12)*ones(12,1)];
     
-    mono = [0,0,r];
-    plus9 = [PlusAperture(9,R_eff-r),r*ones(9,1)];
-    ring9 = [Polygon(9,0,'radius',R_eff-r),r*ones(9,1)];
-    golay9 = [Golay9(R_eff-r),r*ones(9,1)];
+    mono = [0,0,r(1)];
+    plus9 = [PlusAperture(9,R_eff-r(9)),r(9)*ones(9,1)];
+    ring9 = [Polygon(9,0,'radius',R_eff-r(9)),r(9)*ones(9,1)];
+    golay9 = [Golay9(R_eff-r(9)),r(9)*ones(9,1)];
     
     
-    apertures = {mono};
-    aperture_names = {'mono_9PhoFlux'};    
+    apertures = {mono,ring9,golay9};
+    aperture_names = {'Monolith, Ring 9, Golay 9'};    
     
     % data structure with some limited functionality
     DS = struct();
@@ -58,13 +58,14 @@ function DS = DSformat()
     
     
     % array properties (parameter scans)
-    DS.num_pho = [1e4,1e5,1e6];    % mean photon count
+    DS.num_pho = [1e5,1e6];    % mean photon count
     DS.basis = {'Gram-Schmidt','Direct-Detection'};
-    DS.min_sep_frac = 2.^(linspace(-6,-3,7)); % fractional rayleigh units
+    DS.min_sep_frac = 2.^(linspace(-6,-3,4)); % fractional rayleigh units
     DS.apertures = apertures;                 
     DS.aperture_names = aperture_names;
-    DS.num_src = 3:5;
-    DS.cfg_size = [numel(DS.apertures),numel(DS.num_src),numel(DS.min_sep_frac),numel(DS.num_pho),numel(DS.basis)]; % the dimensionality of the parameter space range
+    DS.num_src = 5;
+    DS.dark_lambda = [0,5,25,100,500];
+    DS.cfg_size = [numel(DS.apertures),numel(DS.num_src),numel(DS.min_sep_frac),numel(DS.num_pho),numel(DS.basis),numel(DS.dark_lambda)]; % the dimensionality of the parameter space range
     DS.data = cell(DS.cfg_size);
     
    % construct rayleigh lengths for all apertures and store in a field

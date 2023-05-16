@@ -1,3 +1,4 @@
+%{
 function [est_scene,mode_counts,rl,err] = ...
         MultiAperture_ConstellationLocalization(...
         n_pho,...                   % mean photon number                   [integer]
@@ -11,6 +12,62 @@ function [est_scene,mode_counts,rl,err] = ...
         brite_flag,...              % estimate brightness trigger          [boolean]
         visualize...                % visualization trigger                [boolean]
 )
+%}
+function [est_scene,mode_counts,rl,err] = ...
+        MultiAperture_ConstellationLocalization(...
+        scene,...                   % input scene                          [Nx3] scene(:,1:2)->source coordinates [in fractions of rayleigh], scene(:,3)->relative source brightnesses    
+        aperture,...                % aperture coordinates and radii       [Mx3] aperture(:,1:2) --> centroid coodrdinates of sub-apertures, aperture(:,3) radius of each sub-aperture 
+        n_pho,...                   % mean photon number                   [integer]
+        varargin)
+
+
+%%%%%%%%%% PARSER %%%%%%%%%%%
+
+% defaults
+default_basis = 'Gram-Schmidt';
+default_max_order = 5;
+default_mom_samp = 167;
+default_pos_samp = 129;
+default_EM_max = 30;
+default_dark_lambda = 0;
+default_phase_sigma = 0;
+default_brite_flag = 0;
+default_visualize = 1;
+
+% initialize parser
+P = inputParser;
+
+addRequired(P,'scene')
+addRequired(P,'aperture')
+addRequired(P,'n_pho')
+
+addOptional(P,'max_order',default_max_order)
+addOptional(P,'basis',default_basis)
+addOptional(P,'mom_samp', default_mom_samp)
+addOptional(P,'pos_samp', default_pos_samp)
+addOptional(P,'EM_max', default_EM_max)
+addOptional(P,'dark_lambda',default_dark_lambda)
+addOptional(P,'phase_sigma',default_phase_sigma)
+addOptional(P,'brite_flag', default_brite_flag)
+addOptional(P,'visualize', default_visualize)
+
+parse(P,scene,aperture,n_pho,varargin{:});
+
+
+scene =         P.Results.scene;
+aperture =      P.Results.aperture;
+n_pho =         P.Results.n_pho;
+max_order =     P.Results.max_order;
+basis =         P.Results.basis;
+mom_samp =      P.Results.mom_samp;
+pos_samp =      P.Results.pos_samp;
+EM_max =        P.Results.EM_max;
+dark_lambda =   P.Results.dark_lambda;
+phase_sigma =   P.Results.phase_sigma;
+brite_flag =    P.Results.brite_flag;
+visualize =     P.Results.visualize;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % static measurement estimation of point-source constellations with multi-aperture systems
 
 % multi-aperture parameters
@@ -114,8 +171,9 @@ end
 p = sum(s_b .* prob_fn(s_x,s_y),1);
 
 % simulate the measurement
-isPoiss = 1; % add Poisson arrival statistics to the measurment
-[pho_xy_id, mode_counts] = simulateMeasurement(n_pho, p, isPoiss);
+[pho_xy_id, mode_counts] = simulateMeasurement(n_pho, p,...
+                                                'isPoiss',1,...
+                                                'dark_lambda',dark_lambda );
 
 % find MLE of scene parameters given the measurement
 if strcmp(basis,'Direct-Detection')
@@ -146,7 +204,7 @@ if visualize
     
 	% APERTURE
     figs(1) = figure;
-    VisualizeAperture(aperture);
+    VisualizeAperture(aperture,R_eff);
     
     % PSF
     figs(2) = figure;
@@ -181,6 +239,7 @@ if visualize
     switch basis
         case 'Gram-Schmidt'
             stem(mode_counts);
+            set(gca,'yscale','log')
             title({'Photon Counting Measurement','Gram-Schmidt Basis',['Total Photons: ',num2str(sum(mode_counts))]});
             xlabel('mode index')
             ylabel('# photons')
@@ -194,6 +253,7 @@ if visualize
 
         case 'Zernike'
             stem(mode_counts);
+            set(gca,'yscal','log')
             title({'Photon Counting Measurement','FT Zernike Basis',['Total Photons: ',num2str(sum(mode_counts))]});
             xlabel('mode index')
             ylabel('# photons')
