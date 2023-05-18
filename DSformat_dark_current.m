@@ -58,11 +58,11 @@ function DS = DSformat_dark_current()
     % array properties (parameter scans)
     DS.num_pho = [1e5,1e6];    % mean photon count
     DS.basis = {'Zernike','Direct-Detection'};
-    DS.min_sep_frac = 2.^(linspace(-4,-1,4)); % fractional rayleigh units
+    DS.min_sep_frac = 2.^(linspace(-5,-2,4)); % fractional rayleigh units
     DS.apertures = apertures;                 
     DS.aperture_names = aperture_names;
     DS.num_src = 5;
-    DS.dark_lambda = [0,.1,.2,.3];
+    DS.dark_lambda = [0,5,10,25];
     DS.phase_sigma = 0; % [waves]
     DS.cfg_size = [numel(DS.apertures),numel(DS.num_src),numel(DS.min_sep_frac),numel(DS.num_pho),numel(DS.basis),numel(DS.dark_lambda),numel(DS.phase_sigma)]; % the dimensionality of the parameter space range
     DS.data = cell(DS.cfg_size);
