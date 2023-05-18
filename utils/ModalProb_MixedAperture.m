@@ -1,6 +1,6 @@
 function p = ModalProb_MixedAperture(xy_coords,n,m,v,U,aperture)
     % returns a discrete PMF over the 2D modes which constitutes the photon modal detection
-    % probabilities for photons emitted by a point source at the position x,y
+    % probabilities for photons emitted by a point source at the position x,y    
 
     % correlation function
     correlation_fn = corrFn_MixedAperture(xy_coords,n,m,v,U,aperture);

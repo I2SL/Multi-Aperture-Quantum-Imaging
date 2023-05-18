@@ -2,7 +2,9 @@ function p = ModalProb_DirectImaging(src_coords,X,Y,aperture)
     % Defines the probability distribution over the image plane for
     % given source positions s_x, s_y and aperture positions a_kx, a_ky.
     % In direct detection the measurement modes are delta functions 
-    % on the image plane.
+    % on the image plane.    
+    
+    
     s_x = src_coords(:,1);
     s_y = src_coords(:,2);
     

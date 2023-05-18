@@ -34,7 +34,7 @@ function xy = genMinDistConstellation(b, min_sep, centroid_aligned)
 
     % no possible samples if the area of the area from the optimal packing fraction
     % is less than the area that the sources may be.
-    assert(n*(min_sep/2).^2 <= circ_pack_frac(n) *  R^2); 
+    assert(n*(min_sep/2).^2 <= circ_pack_frac(n) *  (R+min_sep/2)^2); 
     
     % uniformly sample a point anywhere within the disk  of radius R-min_sep 
     % (ensures that the second point is guaranteed to lie within the disk

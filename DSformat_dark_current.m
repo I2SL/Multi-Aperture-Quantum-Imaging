@@ -1,4 +1,4 @@
-function DS = DSformat()
+function DS = DSformat_dark_current()
     % DS.cfg_data = {rl, scene, measurement, mle_scene, likelihood, err, EM_iterations};
     % cfg = [a,n,m,p,b] --> configuration index vector [a = aperture index, n = num_src index, m = min_sep index, p = num_pho index, b = basis index]
     %
@@ -10,7 +10,7 @@ function DS = DSformat()
     % err                   --> [1 x 1 x EM_cycles] array with the fractional localization error of the estimate produced at each EM cycle
 
     % save directory
-    save_dir = fullfile('Dark_Current_Analysis','data_out');
+    save_dir = fullfile('Dark_Current_Analysis_2','data_out');
     
     % constants
     trials = 50;        % trials per configuration
@@ -36,7 +36,7 @@ function DS = DSformat()
     ring9 = [Polygon(9,0,'radius',R_eff-r(9)),r(9)*ones(9,1)];
     
     apertures = {mono,golay9,ring9,};
-    aperture_names = {'Monolith', 'Golay 9','Ring 9'};    
+    aperture_names = {'Monolith', 'Golay 9','Ring 9'};   
     
     % data structure with some limited functionality
     DS = struct();
@@ -62,51 +62,11 @@ function DS = DSformat()
     DS.apertures = apertures;                 
     DS.aperture_names = aperture_names;
     DS.num_src = 5;
-    DS.dark_lambda = 0;
-    DS.phase_sigma = [0,1/100,1/50,1/10]; % [waves]
+    DS.dark_lambda = [0,.1,.2,.3];
+    DS.phase_sigma = 0; % [waves]
     DS.cfg_size = [numel(DS.apertures),numel(DS.num_src),numel(DS.min_sep_frac),numel(DS.num_pho),numel(DS.basis),numel(DS.dark_lambda),numel(DS.phase_sigma)]; % the dimensionality of the parameter space range
     DS.data = cell(DS.cfg_size);
-    DS.rl = ones(1,numel(DS.apertures))*(2*pi * 1.2197/D_eff);
-   
-   %{
-   % construct rayleigh lengths for all apertures and store in a field
-   DS.rl = zeros(1,numel(DS.apertures)); % rayleigh lengths
-   DS.D_eff = zeros(1,numel(DS.apertures)); % effective aperture diameters
-   
-   % get the effective aperture diameter
-   for a = 1:numel(DS.apertures)
-        ap = DS.apertures{a};
-        ap_num = size(ap,1);
-        aper_coords = ap(:,1:2);
-        aper_rads = ap(:,3);
-        
-        if ap_num>1
-            B = squareform(pdist(aper_coords));             % sub-aperture pairwise centroid distances
-            D = aper_rads + aper_rads';                     % sub-aperture pairwise radius sums
-            assert(all(triu(B,1) >= triu(D,1),'all'));      % check if any apertures overlap
-
-            % set the effective aperture diameter to the minimum enclosing circle diameter
-            cm_coords = aper_coords - mean(aper_coords,1);                          % get centered coordinates (with respect to centroid of centroids -- still need to prove with this works)
-            tangent_pts = cm_coords + cm_coords.*aper_rads./vecnorm(cm_coords,2,2); % candidate tangent points where the enclosing circle might touch
-            [~,~,R_eff] = SmallestEnclosingCircle(tangent_pts(:,1)',tangent_pts(:,2)'); % effective aperture radius
-            D_eff = 2*R_eff;
-        else
-            R_eff = aper_rads(1);
-            D_eff = 2*R_eff;                         % set the effective aperture diameter to that of the input aperture
-        end
-        
-        % The rayleigh length of the multi-aperture system is defined to be the
-        % same rayleigh length as a single circular hard aperture with diameter
-        % D_eff, where D_eff is the diameter of the minimum enclosing circle 
-        % that contains all of the sub-apertures.
-        DS.rl(a) = 2*pi * 1.2197/D_eff; % rayleigh length in units of [rads/length] 
-        DS.D_eff(a) = D_eff;
-   end
-   %}
-   
-    
-    
-    
+    DS.rl = ones(1,numel(DS.apertures))*(2*pi * 1.2197/D_eff); 
     
     
 end

@@ -14,7 +14,6 @@ function psi_nm_v = Basis_MixedAperture(xy_coords,n,m,v,U,aperture)
     %           aperture positions and the radii
     %--------------
     % psi_nm - [NxM]
-       
 
     [theta,r] = cart2pol(xy_coords(:,1),xy_coords(:,2));
     

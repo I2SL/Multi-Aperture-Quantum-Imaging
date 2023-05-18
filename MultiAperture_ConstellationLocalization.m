@@ -1,18 +1,3 @@
-%{
-function [est_scene,mode_counts,rl,err] = ...
-        MultiAperture_ConstellationLocalization(...
-        n_pho,...                   % mean photon number                   [integer]
-        max_order,...               % max modal order                      [integer]
-        basis,...                   % basis                                [string] ['Gram-Schmidt','Zernike', 'Direct-Detection']
-        aperture,...                % aperture coordinates and radii       [Mx3] aperture(:,1:2) --> centroid coodrdinates of sub-apertures, aperture(:,3) radius of each sub-aperture 
-        scene,...                   % input scene                          [Nx3] scene(:,1:2)->source coordinates [in fractions of rayleigh], scene(:,3)->relative source brightnesses
-        mom_samp,...                % aperture plane sampling density (momentum space)  [integer] [units : samples/length]
-        pos_samp,...                % image-plane sampling density (position space)     [integer] [units : samples/rayleigh] Image plane for source position estimates has dimensions [pos_samp,pos_samp]
-        EM_max,...                  % max number of EM iterations          [integer]
-        brite_flag,...              % estimate brightness trigger          [boolean]
-        visualize...                % visualization trigger                [boolean]
-)
-%}
 function [est_scene,mode_counts,rl,err] = ...
         MultiAperture_ConstellationLocalization(...
         scene,...                   % input scene                          [Nx3] scene(:,1:2)->source coordinates [in fractions of rayleigh], scene(:,3)->relative source brightnesses    
@@ -137,6 +122,8 @@ switch basis
         % probability function
         GS_basis_pos = reshape(GS_basis_pos,[size(X),num_modes]);                    % 2D basis matrix stack
         prob_fn = @(xq,yq) ModalProb_GramSchmidt_pos([xq,yq],X,Y,GS_basis_pos,A_tot);
+        
+        prob_fn_measurement = prob_fn;
                 
 
     case 'Zernike'
@@ -153,9 +140,14 @@ switch basis
         % Create Mixed-Aperture Zernike Basis
         U = dftmtx(ap_num)/sqrt(ap_num);   % a unitary matrix for mixing aperture-local modes
         
+        % Add fiber delays to the Mixed-Aperture mixing matrix
+        U_noisy = U.*exp(1i * 2*pi * normrnd(0,phase_sigma,size(U)));
+        
         % probability function handle
         %prob_fn = @(xq,yq) ModalProb_MixedAperture([xq,yq],nj,mj,vj,U,aper_coords,A_tot);
         prob_fn = @(xq,yq) ModalProb_MixedAperture([xq,yq],nj,mj,vj,U,aperture);
+        
+        prob_fn_measurement = @(xq,yq) ModalProb_MixedAperture([xq,yq],nj,mj,vj,U_noisy,aperture);
 
     case 'Direct-Detection'
         
@@ -164,11 +156,13 @@ switch basis
         
         % probability function
         prob_fn = @(xq,yq) ModalProb_DirectImaging([xq,yq],X,Y,aperture);
+        
+        prob_fn_measurement = prob_fn;
                 
 end
 
 % get modal probabilities for the given source distribution
-p = sum(s_b .* prob_fn(s_x,s_y),1);
+p = sum(s_b .* prob_fn_measurement(s_x,s_y),1);
 
 % simulate the measurement
 [pho_xy_id, mode_counts] = simulateMeasurement(n_pho, p,...
@@ -287,7 +281,7 @@ if visualize
     ylabel('Log Likelihood')
     subplot(2,1,2)
     plot(err_trc/min_sep)
-    title('Localization Error Convergence')
+    title('Localization Error Convergence $\epsilon / \Delta_{min}$','interpreter','latex')
     xlabel('Iteration')
     ylabel('Fractional Localization Error')
     
