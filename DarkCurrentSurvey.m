@@ -14,8 +14,8 @@ function DarkCurrentSurvey(array_id,num_workers)
     mkdir(DS.save_dir)
     
     % get configuration indices
-    [a,n,m,p,b,e1] = ind2sub(DS.cfg_size,array_id);
-    cfg_id = {a,n,m,p,b,e1};
+    [a,n,m,p,b,e1,e2] = ind2sub(DS.cfg_size,array_id);
+    cfg_id = {a,n,m,p,b,e1,e2};
     
     % parfor configuration variables
     trials = DS.trials;
@@ -39,7 +39,19 @@ function DarkCurrentSurvey(array_id,num_workers)
         if DS.dark_lambda(e1) ~= 0
             return
         end
+        
+        if DS.phase_sigma(e2) ~= 0
+            return
+        end
     end
+    
+    % monolith cannot have relative phasing error
+    if strcmp(DS.aperture_names{a},'Monolith')
+        if DS.phase_sigma(e2) ~= 0
+            return
+        end
+    end
+   
    
     % multi-aperture parameters
     ap_num = size(aperture,1);
@@ -100,7 +112,7 @@ function DarkCurrentSurvey(array_id,num_workers)
             % probability function handle
             prob_fn = @(xq,yq) ModalProb_MixedAperture([xq,yq],nj,mj,vj,U,aperture);
             
-            U_noisy = U+exp(1i*2*pi(normrnd(0,phase_sigma,size(U))));
+            U_noisy = U+exp(1i*2*pi*(normrnd(0,phase_sigma,size(U))));
             prob_fn_measurement = @(xq,yq) ModalProb_MixedAperture([xq,yq],nj,mj,vj,U_noisy,aperture);
             
         case 'Direct-Detection'

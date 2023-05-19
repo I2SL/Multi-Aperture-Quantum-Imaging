@@ -57,7 +57,7 @@ function DS = DSformat_dark_current()
     
     % array properties (parameter scans)
     DS.num_pho = [1e5,1e6];    % mean photon count
-    DS.basis = {'Zernike','Direct-Detection'};
+    DS.basis = {'Gram-Schmidt','Direct-Detection'};
     DS.min_sep_frac = 2.^(linspace(-5,-2,4)); % fractional rayleigh units
     DS.apertures = apertures;                 
     DS.aperture_names = aperture_names;
