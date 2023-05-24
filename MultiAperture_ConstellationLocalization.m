@@ -17,6 +17,7 @@ default_EM_max = 30;
 default_dark_lambda = 0;
 default_phase_sigma = 0;
 default_brite_flag = 0;
+default_exoplanet_flag = 0;
 default_visualize = 1;
 
 % initialize parser
@@ -34,6 +35,7 @@ addOptional(P,'EM_max', default_EM_max)
 addOptional(P,'dark_lambda',default_dark_lambda)
 addOptional(P,'phase_sigma',default_phase_sigma)
 addOptional(P,'brite_flag', default_brite_flag)
+addOptional(P,'exoplanet_flag', default_exoplanet_flag)
 addOptional(P,'visualize', default_visualize)
 
 parse(P,scene,aperture,n_pho,varargin{:});
@@ -50,10 +52,22 @@ EM_max =        P.Results.EM_max;
 dark_lambda =   P.Results.dark_lambda;
 phase_sigma =   P.Results.phase_sigma;
 brite_flag =    P.Results.brite_flag;
+exoplanet_flag = P.Results.exoplanet_flag;
 visualize =     P.Results.visualize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % static measurement estimation of point-source constellations with multi-aperture systems
+
+
+% Checks
+if phase_sigma > 0
+    assert(strcmp(basis,'Zernike'))
+end
+
+if exoplanet_flag
+    assert(all(scene(1,1:2) == [0,0]))
+end
+
 
 % multi-aperture parameters
 ap_num = size(aperture,1);
@@ -84,6 +98,7 @@ rl = 2*pi * 1.2197/D_eff;   % rayleigh length (in rads/length) - the rayleigh le
 % source distribution
 % scene = [s_x,s_y,s_b];
 src_coords = rl*scene(:,1:2);            % source coordinates [rad/u]
+src_brites  = scene(:,3);                % relative source brightnesses
 num_sources = size(src_coords,1);        % number of sources in the scene
 s_x = src_coords(:,1); s_y = src_coords(:,2); 
 s_b = scene(:,3);                        % relative source brightnesses
@@ -94,8 +109,15 @@ s_b = scene(:,3);                        % relative source brightnesses
 % aperture plane discretization
 [Kx,Ky,d2k] = ApertureKxKy(aper_coords,aper_rads,mom_samp);     % Kx [u], Ky [u], d2k [u^2]
 
+% determine the minimum separation between the sources (if one source, set
+% to 1)
+if size(scene,1) == 1
+    min_sep = 1;
+else
+    min_sep = min(pdist(src_coords));    
+end
+
 % make sure min source separation is greater than the resolution of the image plane
-min_sep = min(pdist(src_coords));
 dx = X(1,2) - X(1,1);
 if min_sep < dx
     warning('Image plane discretization is coarser than minimum source separation')
@@ -164,17 +186,25 @@ end
 % get modal probabilities for the given source distribution
 p = sum(s_b .* prob_fn_measurement(s_x,s_y),1);
 
-% simulate the measurement
-[pho_xy_id, mode_counts] = simulateMeasurement(n_pho, p,...
+
+
+if strcmp(basis,'Direct-Detection')
+
+    % simulate the measurement
+    [mode_counts,pho_xy_id] = simulateMeasurement(n_pho, p,...
                                                 'isPoiss',1,...
                                                 'dark_lambda',dark_lambda );
-
-% find MLE of scene parameters given the measurement
-if strcmp(basis,'Direct-Detection')
+    
+    % find MLE of scene parameters given the measurement
     [s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM_DD([X(pho_xy_id)',Y(pho_xy_id)'],num_sources,aperture,rl,EM_max,brite_flag);   
     %[s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM_DD(mode_counts,num_sources,src_coords,prob_fn,X,Y,rl,EM_max,brite_flag);
 else
-    [s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,src_coords,prob_fn,X,Y,rl,EM_max,brite_flag);
+     % simulate the measurement
+    mode_counts = simulateMeasurement(n_pho, p,...
+                                             'isPoiss',1,...
+                                             'dark_lambda',dark_lambda );
+    
+    [s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,src_coords,src_brites,prob_fn,X,Y,rl,EM_max,brite_flag,exoplanet_flag);
 end
 
 % intermediate scene parameter estimates
@@ -276,37 +306,54 @@ if visualize
     figs(4) = figure;
     subplot(2,1,1)
     plot(loglike_trc)
-    title('Likelihood Convergence')
+    title('Likelihood Convergence','interpreter','latex')
     xlabel('Iteration')
     ylabel('Log Likelihood')
     subplot(2,1,2)
-    plot(err_trc/min_sep)
+    plot(err_trc./min_sep)
     title('Localization Error Convergence $\epsilon / \Delta_{min}$','interpreter','latex')
     xlabel('Iteration')
     ylabel('Fractional Localization Error')
     
-    
 
     % ESTIMATE
     figs(5) = figure;
-    % plot ground truth
-    scatter(s_x/rl,s_y/rl,'filled','black'); hold on;
-    % plot the intermediate estimates
-    if count > 1 
-        scatter(s_x_im/rl,s_y_im/rl,5)
+    if exoplanet_flag
+        % plot ground truth
+        scatter(s_x/rl,s_y/rl,50*log10(s_b./min(s_b) + 1),'filled','black'); 
+        hold on;        
+        % plot the final constellation estimate
+        scatter(s_x_mle(2:end)/rl,s_y_mle(2:end)/rl,50*log10(s_b_mle(2:end)./min(s_b_mle) + 1),'red','square')
+        hold off
+        names = {'Scene','Expolanet Estimate'};
+        fig_title = {'Expectation Maximization',basis,...
+            ['Brightness Ratio ', sprintf('%0.0e',max(s_b)/min(s_b)),':1'],...
+            ['Photons ',sprintf('%0.0e',sum(mode_counts))],...
+            ['Minimum Separation \sigma /',num2str(round(1/min(pdist(scene(:,1:2)))))],...
+            ['Localization Error ', sprintf('%0.3g',err/min_sep) ]};
+    else
+        % plot ground truth
+        scatter(s_x/rl,s_y/rl,50*s_b,'filled','black'); 
+        hold on;
+        % plot the intermediate estimates
+        if count > 1
+            scatter(s_x_im/rl,s_y_im/rl,50*s_b_im)
+        end
+        
+        % plot the final constellation estimate
+        scatter(s_x_mle/rl,s_y_mle/rl,50*s_b_mle,'red','square')
+        hold off
+        names = cell(1,count+1);
+        names(:) = {''}; names(1) = {'Ground Truth'}; names(end) = {'EM Estimate'};
+        fig_title = {'Expectation Maximization',basis};
     end
-    % plot the final constellation estimate
-    scatter(s_x_mle/rl,s_y_mle/rl,'red','square')
-    hold off
-    title({'Expectation Maximization',basis}) 
-    xlabel('x (rl)');
-    ylabel('y (rl)');
+    title(fig_title) 
+    xlabel('$x/\sigma$','interpreter','latex');
+    ylabel('$y/\sigma$','interpreter','latex');
     xlim([min(X(:))/rl,max(X(:))/rl]); 
     ylim([min(Y(:))/rl,max(Y(:))/rl]); 
     xticks(linspace(min(X(:))/rl,max(X(:))/rl,5));
     yticks(linspace(min(Y(:))/rl,max(Y(:))/rl,5));
-    names = cell(1,count+1);
-    names(:) = {''}; names(1) = {'Ground Truth'}; names(end) = {'EM Estimate'};
     legend(names)
     axis square
     

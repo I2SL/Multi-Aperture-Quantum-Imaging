@@ -13,7 +13,7 @@ function Visualize_GramSchmidt(nj,mj,X,Y,rl,phi_nm)
     
     for j = 1:numel(nj)
         
-        nexttile
+        nexttile(sub2ind([numel(nn),numel(mm)],nj(j)+1,mj(j)+1))
         %subplot(numel(nn),numel(mm),j)
         
         imagesc([min(X(:)),max(X(:))]/rl,[min(Y(:)),max(Y(:))]/rl,abs(phi_nm(:,:,j)).^2)

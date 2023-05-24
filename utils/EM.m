@@ -1,4 +1,4 @@
-function [s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,src_coords,prob_fn,X,Y,rl,n_em_max,brite_flag)
+function [s_b_trc, s_x_trc, s_y_trc, loglike_trc, count] = EM(mode_counts,num_sources,src_coords,src_brites,prob_fn,X,Y,rl,n_em_max,brite_flag,exoplanet_flag)
 % runs expectation maximization to determine source coordinates and source
 % brightnesses from a measurement.
 %
@@ -44,8 +44,20 @@ offset = log_N - sum(log_n); % log( N!/ ( n1! ... nM!) )
 s_x = rl/4*(rand(num_sources,1)-.5);
 s_y = rl/4*(rand(num_sources,1)-.5);
 
+
 % initialize source weights
-s_b = ones(num_sources,1)/num_sources;
+if brite_flag
+    s_b = ones(num_sources,1)/num_sources;    
+else
+    s_b = src_brites;
+end
+
+
+% assume star is located at the origin if exoplanet searching
+if exoplanet_flag
+    s_x(1) = 0; 
+    s_y(1) = 0;
+end
 
 
 s_x_trc = zeros(num_sources,1);  % source x coordinates
@@ -94,11 +106,19 @@ while ( ~all((s_x - s_x_trc(:,end)) == 0) || ~all((s_y - s_y_trc(:,end)) == 0) )
         % get Q
         Q = sum(pagemtimes(reshape(T,[size(T,1),1,size(T,2)]), reshape(lnP,[1,size(lnP)])),3);
 
-        % reshape Q for 2D    
-        Q_2D = zeros([size(X),num_sources]);
-        for i = 1:num_sources
-            Q_2D(:,:,i) = reshape(Q(i,:),size(X));
-        end 
+        % reshape Q for 2D
+        if exoplanet_flag
+            Q_2D = zeros([size(X),num_sources-1]);
+            for i = 2:num_sources
+                Q_2D(:,:,i-1) = reshape(Q(i,:),size(X));
+            end
+        else
+            Q_2D = zeros([size(X),num_sources]);
+            for i = 1:num_sources
+                Q_2D(:,:,i) = reshape(Q(i,:),size(X));
+            end
+        end
+            
 
         % ----------- MAXIMIZATION STEP -----------
 
@@ -123,13 +143,20 @@ while ( ~all((s_x - s_x_trc(:,end)) == 0) || ~all((s_y - s_y_trc(:,end)) == 0) )
         end 
         %}
         
-        if brite_flag
+        if brite_flag && num_sources > 1
             s_b = sum(T,2)/size(T,2); % update source weights
-        end
+        end        
         
         % get the MLE constellations for the given iteration
-        %[s_x,s_y] = MLESourceCoords(X,Y,Q_2D,src_coords,'MinError');
-        [s_x,s_y] = MLESourceCoords(X,Y,Q_2D,src_coords,'Both');
+        if exoplanet_flag     
+            % force star to be located at the origin if exoplanet searching
+            [s_x,s_y] = MLESourceCoords(X,Y,Q_2D,src_coords(2:end,:),'MinError');
+            s_x = [0;s_x]; 
+            s_y = [0;s_y];
+        else
+            [s_x,s_y] = MLESourceCoords(X,Y,Q_2D,src_coords,'Both');
+        end
+
         
     end
     

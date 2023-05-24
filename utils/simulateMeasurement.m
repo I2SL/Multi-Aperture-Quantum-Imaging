@@ -1,4 +1,4 @@
-function [measurement,mode_count] = simulateMeasurement(mu_pho,p,varargin)
+function [mode_count,varargout] = simulateMeasurement(mu_pho,p,varargin)
     % mu_pho - mean photon number 
     % p - modal probability distribution (PMF)
     % 
@@ -28,25 +28,21 @@ function [measurement,mode_count] = simulateMeasurement(mu_pho,p,varargin)
     dark_lambda = P.Results.dark_lambda;
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    % set the number of photons collected in the measurement
+    
     if isPoiss
-        N = poissrnd(mu_pho); 
+        mode_count = poissrnd(mu_pho*p);
     else
-        N = mu_pho;
+        mode_count = round(mu_pho*p);
     end
     
-    % randomly assign modal bin to each photon according to PMF
-    modes = 1:numel(p);
-    measurement = datasample(modes,N,'Weights',p);
-    
+        
     % add dark-current photons
     dc = poissrnd(dark_lambda, [1,numel(p)]);
-    measurement = [measurement,repelem(1:numel(p),dc)];
+    mode_count = mode_count + dc;
     
-    % count photons in modal bins
-    [gc,gs] = groupcounts(measurement');
-    mode_count = zeros(1,numel(p));
-    mode_count(gs) = gc;
+    % expand mode counts into measurement
+    if nargout == 2
+        varargout{1} = repelem(1:numel(p),mode_count);
+    end
 end
 
