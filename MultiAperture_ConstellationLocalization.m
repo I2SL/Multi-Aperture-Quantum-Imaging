@@ -226,6 +226,17 @@ err = err_trc(end);
 % visualize figures
 if visualize
     
+    % source colors
+    colors = [  [0 0.4470 0.7410]
+                [0.8500 0.3250 0.0980]
+                [0.9290 0.6940 0.1250]	
+                [0.4660 0.6740 0.1880]	
+                [0.4940 0.1840 0.5560]
+                [0.3010 0.7450 0.9330]	
+                [0.6350 0.0780 0.1840]
+                ];    
+    
+    
 	% APERTURE
     figs(1) = figure;
     VisualizeAperture(aperture,R_eff);
@@ -262,18 +273,60 @@ if visualize
     figs(3) = figure;
     switch basis
         case 'Gram-Schmidt'
-            stem(mode_counts);
+            tiledlayout(2,1)
+            p_s = prob_fn_measurement(s_x,s_y);
+            % make mode counts figure
+            nexttile
+            stem(1:numel(mode_counts),mode_counts,'filled','k');
+            hold on
+            for s = 1:num_sources
+                mc_s = round(mode_counts .* (p_s(s,:) * s_b(s) ./ sum(s_b.*p_s,1)));
+                stem((1:numel(mode_counts)) + .5*(s)/(num_sources), mc_s,'filled','Color',colors(s,:))
+                
+            end
+            hold off
             set(gca,'yscale','log')
-            title({'Photon Counting Measurement','Gram-Schmidt Basis',['Total Photons: ',num2str(sum(mode_counts))]});
+            title({'Photon Counting Measurement','Gram-Schmidt Basis',['Total Photons: ',sprintf('%.e',(sum(mode_counts)))]});
             xlabel('mode index')
             ylabel('# photons')
+            if exoplanet_flag
+                leg = legend(['Total','Star',arrayfun(@(j)['Planet-',num2str(j)],1:num_sources-1,'UniformOutput', 0)]);
+            else
+                leg = legend(['Total',arrayfun(@(j)['S',num2str(j)],1:num_sources,'UniformOutput', 0)]);    
+            end
 
+            title(leg,'Photon Detections by Source')
             n_labels = arrayfun(@num2str,nj,'UniformOutput', 0);
             m_labels = arrayfun(@num2str,mj,'UniformOutput', 0);
             index_labels = strcat(n_labels,repmat({','},[1,num_modes]),m_labels);
             xticks(1:num_modes)
             xticklabels(index_labels)
-
+            
+            % make probability distribution figure for each source
+            nexttile
+            stem(1:num_modes,sum(s_b.*p_s,1),'filled','k')
+            hold on
+            for s = 1:num_sources
+                stem((1:num_modes) + .5*(s)/(num_sources), p_s(s,:), 'filled','Color',colors(s,:))
+            end
+            hold off
+            
+            title({'Modal Probability Distributions'});
+            xlabel('mode index')
+            ylabel('probability')
+            if exoplanet_flag
+                leg = legend(['Total','Star',arrayfun(@(j)['Planet-',num2str(j)],1:num_sources-1,'UniformOutput', 0)]);
+            else
+                leg = legend(['Total',arrayfun(@(j)['S',num2str(j)],1:num_sources,'UniformOutput', 0)]);    
+            end
+            ylim([0,1])
+            title(leg,'Mode Detection Probabilities by Source')
+            n_labels = arrayfun(@num2str,nj,'UniformOutput', 0);
+            m_labels = arrayfun(@num2str,mj,'UniformOutput', 0);
+            index_labels = strcat(n_labels,repmat({','},[1,num_modes]),m_labels);
+            xticks(1:num_modes)
+            xticklabels(index_labels)
+            
 
         case 'Zernike'
             stem(mode_counts);
@@ -319,17 +372,19 @@ if visualize
     % ESTIMATE
     figs(5) = figure;
     if exoplanet_flag
-        % plot ground truth
-        scatter(s_x/rl,s_y/rl,50*log10(s_b./min(s_b) + 1),'filled','black'); 
-        hold on;        
+        for s = 1:num_sources
+            % plot ground truth
+            scatter(s_x(s)/rl,s_y(s)/rl,100*log10(s_b(s)./min(s_b) + 1),colors(s,:),'filled'); 
+            hold on
+        end
         % plot the final constellation estimate
-        scatter(s_x_mle(2:end)/rl,s_y_mle(2:end)/rl,50*log10(s_b_mle(2:end)./min(s_b_mle) + 1),'red','square')
+        scatter(s_x_mle(2:end)/rl,s_y_mle(2:end)/rl,100*log10(s_b_mle(2:end)./min(s_b_mle) + 1),'k','filled','square')
         hold off
-        names = {'Scene','Expolanet Estimate'};
+        names = ['Star',arrayfun(@(j)['Planet-',num2str(j)],1:num_sources-1,'UniformOutput', 0),'Estimate'];
         fig_title = {'Expectation Maximization',basis,...
             ['Brightness Ratio ', sprintf('%0.0e',max(s_b)/min(s_b)),':1'],...
             ['Photons ',sprintf('%0.0e',sum(mode_counts))],...
-            ['Minimum Separation \sigma /',num2str(round(1/min(pdist(scene(:,1:2)))))],...
+            ['Minimum Separation $\sigma /',num2str(round(1/min(pdist(scene(:,1:2))))),'$'],...
             ['Localization Error ', sprintf('%0.3g',err/min_sep) ]};
     else
         % plot ground truth
@@ -341,13 +396,13 @@ if visualize
         end
         
         % plot the final constellation estimate
-        scatter(s_x_mle/rl,s_y_mle/rl,50*s_b_mle,'red','square')
+        scatter(s_x_mle/rl,s_y_mle/rl,50*s_b_mle,'red','filled','square')
         hold off
         names = cell(1,count+1);
         names(:) = {''}; names(1) = {'Ground Truth'}; names(end) = {'EM Estimate'};
         fig_title = {'Expectation Maximization',basis};
     end
-    title(fig_title) 
+    title(fig_title,'interpreter','latex') 
     xlabel('$x/\sigma$','interpreter','latex');
     ylabel('$y/\sigma$','interpreter','latex');
     xlim([min(X(:))/rl,max(X(:))/rl]); 
