@@ -146,9 +146,9 @@ function ExoplanetSurvey(array_id,num_workers)
         s_b(star_idx) = dynamic_range; 
         s_b = s_b/sum(s_b);
 
-        s_xy_frac = genMinDistConstellation(src_brites, min_sep, 0);
+        s_xy_frac = genMinDistConstellation(s_b, min_sep_frac, 0);
         s_xy_frac = s_xy_frac - s_xy_frac(star_idx,:);    % center the constellation on the star
-        [s_b,srt_order] = sort(src_brites,'descend');
+        [s_b,srt_order] = sort(s_b,'descend');
         s_xy_frac = s_xy_frac(srt_order,:);
         scene = [s_xy_frac, s_b];     % scene object      
         
@@ -173,13 +173,13 @@ function ExoplanetSurvey(array_id,num_workers)
                 % distribution given by the ground truth sources and
                 % the aperture configuration
                 p_DD = sum(s_b .* prob_fn_measurement(s_x,s_y),1);
-                [pho_xy_id, mode_counts] = simulateMeasurement(N, p_DD,'isPoiss',1);                 
+                [~,pho_xy_id] = simulateMeasurement(N, p_DD,'isPoiss',1);                 
                 x_DD = X_DD(pho_xy_id);
                 y_DD = Y_DD(pho_xy_id);
             otherwise
                 % get modal probabilities for the given source distribution
                 p_modes = sum(s_b .* prob_fn_measurement(s_x,s_y),1);
-                [~, mode_counts] = simulateMeasurement(N, p_modes, 'isPoiss',0,'dark_lambda',dark_lambda);   
+                [mode_counts] = simulateMeasurement(N, p_modes, 'isPoiss',1,'dark_lambda',dark_lambda);   
         end
 
         % different EM initializations
@@ -191,7 +191,7 @@ function ExoplanetSurvey(array_id,num_workers)
                 case 'Direct-Detection'
                     [s_b_trc, s_x_trc, s_y_trc, loglike_trc, iters] = EM_DD([x_DD',y_DD'],num_src,aperture,rl,EM_iters_max,0);                        
                 otherwise
-                    [s_b_trc, s_x_trc, s_y_trc, loglike_trc, iters] = EM(mode_counts,num_src,src_coords,prob_fn,X_GS,Y_GS,rl,EM_iters_max,0);                        
+                    [s_b_trc, s_x_trc, s_y_trc, loglike_trc, iters] = EM(mode_counts,num_src,src_coords,s_b,prob_fn,X_GS,Y_GS,rl,EM_iters_max,0,1);                        
             end
 
             % final scene parameter estimates
