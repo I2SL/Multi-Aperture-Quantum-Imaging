@@ -10,7 +10,7 @@ function DS = DSformat_exoplanet()
     % err                   --> [1 x 1 x EM_cycles] array with the fractional localization error of the estimate produced at each EM cycle
 
     % save directory
-    save_dir = fullfile('Exoplanet_Analysis_alignment_error','data_out');
+    save_dir = fullfile('Exoplanet_Analysis_dark_current','data_out');
     
     % constants
     trials = 50;        % trials per configuration
@@ -64,10 +64,10 @@ function DS = DSformat_exoplanet()
     DS.num_pho = 1e9;     % mean photon count [photons/integration_period]
     DS.min_sep_frac = 2.^(linspace(-5,-2,4)); % fractional rayleigh units
     DS.basis = {'Gram-Schmidt'};
-    DS.dynamic_range = [1e3,1e5,1e7];
-    DS.dark_lambda = 0; % [photons/integration_period]
+    DS.dynamic_range = 1e5;
+    DS.dark_lambda = 1e3*[5,10,25]; % [photons/integration_period]
     DS.phase_sigma = 0; % [waves]
-    DS.align_sigma = [0,1e-3,1e-2,1e-1]; % pointing error standard deviation in [Rayleigh units]
+    DS.align_sigma = 0; % pointing error standard deviation in [Rayleigh units]
     
     DS.cfg_size = [numel(DS.apertures),numel(DS.num_src),numel(DS.min_sep_frac),numel(DS.num_pho),numel(DS.basis),numel(DS.dynamic_range),...
                   numel(DS.dark_lambda),numel(DS.phase_sigma),numel(DS.align_sigma)]; % the dimensionality of the parameter space range
