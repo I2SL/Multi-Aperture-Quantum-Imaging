@@ -10,7 +10,7 @@ function DS = DSformat_exoplanet()
     % err                   --> [1 x 1 x EM_cycles] array with the fractional localization error of the estimate produced at each EM cycle
 
     % save directory
-    save_dir = fullfile('Exoplanet_Analysis','data_out');
+    save_dir = fullfile('Exoplanet_Analysis_alignment_error','data_out');
     
     % constants
     trials = 50;        % trials per configuration
@@ -53,7 +53,7 @@ function DS = DSformat_exoplanet()
     DS.R_eff = R_eff;                       % effective aperture radius
     DS.max_order = max_order;               % max modal order 
     DS.cfg_idx_names = {'Aperture Index (a)','Source Number Index (n)','Min Separation Index (m)','Photon Number Index (p)','Basis Index (b)',...
-                        'Dynamic range (d)','Dark Current (e1)','Phase Error (e2)'};
+                        'Dynamic range (d)','Dark Current (e1)','Phase Error (e2)', 'Alignment Error (e3)'};
     DS.cfg_data_names = {'Rayleigh Length','Scene','Measurement Mode Counts','Estimated Scene','Log Likelihood','Error'};
     
     
@@ -67,8 +67,10 @@ function DS = DSformat_exoplanet()
     DS.dynamic_range = [1e3,1e5,1e7];
     DS.dark_lambda = 0; % [photons/integration_period]
     DS.phase_sigma = 0; % [waves]
+    DS.align_sigma = [0,1e-3,1e-2,1e-1]; % pointing error standard deviation in [Rayleigh units]
     
-    DS.cfg_size = [numel(DS.apertures),numel(DS.num_src),numel(DS.min_sep_frac),numel(DS.num_pho),numel(DS.basis),numel(DS.dynamic_range),numel(DS.dark_lambda),numel(DS.phase_sigma)]; % the dimensionality of the parameter space range
+    DS.cfg_size = [numel(DS.apertures),numel(DS.num_src),numel(DS.min_sep_frac),numel(DS.num_pho),numel(DS.basis),numel(DS.dynamic_range),...
+                  numel(DS.dark_lambda),numel(DS.phase_sigma),numel(DS.align_sigma)]; % the dimensionality of the parameter space range
     DS.data = cell(DS.cfg_size);
     DS.rl = ones(1,numel(DS.apertures))*(2*pi * 1.2197/D_eff); 
     

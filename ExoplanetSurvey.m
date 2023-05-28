@@ -14,8 +14,8 @@ function ExoplanetSurvey(array_id,num_workers)
     mkdir(DS.save_dir)
     
     % get configuration indices
-    [a,n,m,p,b,d,e1,e2] = ind2sub(DS.cfg_size,array_id);
-    cfg_id = {a,n,m,p,b,d,e1,e2};
+    [a,n,m,p,b,d,e1,e2,e3] = ind2sub(DS.cfg_size,array_id);
+    cfg_id = {a,n,m,p,b,d,e1,e2,e3};
     
     
     % parfor configuration variables
@@ -32,6 +32,7 @@ function ExoplanetSurvey(array_id,num_workers)
     dynamic_range = DS.dynamic_range(d);
     dark_lambda = DS.dark_lambda(e1);
     phase_sigma = DS.phase_sigma(e2);
+    align_sigma = DS.align_sigma(e3);
     
     % change the number of EM cycles to 1 for DD. All initializations
     % converge to the same result so no need to do multiple trials on the
@@ -130,11 +131,11 @@ function ExoplanetSurvey(array_id,num_workers)
     disp(['-------Configuration: ' num2str(array_id),'/',num2str(prod(DS.cfg_size)),'--------'])    
     
     
-    %for t=1:DS.trials
+    for t=1:DS.trials
     
     % run parameter scans using matlab's Parallel Computing Toolbox
-    parpool(num_workers)
-    parfor t=1:trials
+    %parpool(num_workers)
+    %parfor t=1:trials
         
         % set the random number generator seed (must include the parallel
         % worker in the seed for different instances to develop different scenes)
@@ -147,10 +148,11 @@ function ExoplanetSurvey(array_id,num_workers)
         s_b = s_b/sum(s_b);
 
         s_xy_frac = genMinDistConstellation(s_b, min_sep_frac, 0);
-        s_xy_frac = s_xy_frac - s_xy_frac(star_idx,:);    % center the constellation on the star
+        s_xy_frac = s_xy_frac - s_xy_frac(star_idx,:);              % center the constellation on the star
+        s_xy_frac = s_xy_frac + min_sep_frac * normrnd(0,align_sigma,1,2);      % add the alignment error
         [s_b,srt_order] = sort(s_b,'descend');
         s_xy_frac = s_xy_frac(srt_order,:);
-        scene = [s_xy_frac, s_b];     % scene object      
+        scene = [s_xy_frac, s_b];                                   % scene object   
         
         % run expectation maximization on the measurement
         est_scene = zeros(num_src,3,EM_cycles);
