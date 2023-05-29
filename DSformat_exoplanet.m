@@ -65,7 +65,7 @@ function DS = DSformat_exoplanet()
     DS.min_sep_frac = 2.^(linspace(-5,-2,4)); % fractional rayleigh units
     DS.basis = {'Gram-Schmidt'};
     DS.dynamic_range = 1e5;
-    DS.dark_lambda = [5,10,25]; % [photons/integration_period]
+    DS.dark_lambda = [0,5,10,25]; % [photons/integration_period]
     DS.phase_sigma = 0; % [waves]
     DS.align_sigma = 0; % pointing error standard deviation in [Rayleigh units]
     
