@@ -34,7 +34,7 @@ function R_eff = VisualizeAperture(aperture,R_eff)
     scatter(0,0,10,'black','filled')
     hold on
     % plot the effective aperture
-    circles(c_x,c_y,R_eff,'edgecolor','w','facecolor',[1,1,1],'facealpha',.25)
+    circles(c_x,c_y,R_eff,'edgecolor','w','facecolor',[1,1,1]/2,'facealpha',.25)
     circles(aperture(:,1),aperture(:,2),aperture(:,3),'edgecolor','k','facecolor',[45, 209, 201]/255)
     % [0.0078+.2 0.5765+.1 0.5255+.1]
     %circles(c_x,c_y,R_eff,'edgecolor','k','facecolor',[0.5 0.5 0.5],'facealpha',.5)
