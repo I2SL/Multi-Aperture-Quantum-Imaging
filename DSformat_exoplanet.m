@@ -10,7 +10,7 @@ function DS = DSformat_exoplanet()
     % err                   --> [1 x 1 x EM_cycles] array with the fractional localization error of the estimate produced at each EM cycle
 
     % save directory
-    save_dir = fullfile('Exoplanet_Analysis_dark_current','data_out');
+    save_dir = fullfile('Exoplanet_Analysis_dark_current_v2','data_out');
     
     % constants
     trials = 50;        % trials per configuration
