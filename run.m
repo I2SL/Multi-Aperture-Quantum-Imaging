@@ -15,13 +15,9 @@ aperture = golay9;
 
 % make the scene
 n_src = 2;                                  % number of sources
-%src_brites = ones(n_src,1) / n_src;         % the relative source brightnesses. src_brites should have dimesions [n_src] sum to one and have length n_src.         
-src_brites = [1e5;1;1;1];
-%src_brites = [1];
+src_brites = [1e5;1;1;1];                   % the relative source brightnesses. src_brites should have dimesions [n_src] sum to one and have length n_src.         
 src_brites = src_brites / sum(src_brites);
 delta = 1/4;                               % minimum source separation as a fraction of the rayleigh length
-%[t_x,t_y] = pol2cart(2*pi*rand(1),delta);
-%src_coords_frac = [t_x,t_y];
 src_coords_frac = genMinDistConstellation(src_brites,delta,1); % source coordinates in fractional rayleigh units [x/rl]. The rayleigh length corresponds to the effective diameter
 src_coords_frac = src_coords_frac - src_coords_frac(1,:); 
 scene = [src_coords_frac, src_brites];           % input scene. [Nx3] scene(:,1:2)->source coordinates [in fractions of rayleigh], scene(:,3)->relative source brightnesses
@@ -29,16 +25,14 @@ scene = [src_coords_frac, src_brites];           % input scene. [Nx3] scene(:,1:
 
 
 % set the system parameters
-%n_pho = 1e4*n_src*9/100;        % mean photon number                   [integer]
-n_pho = 1e1;        % mean photon number                   [integer]
+n_pho = 1e9;        % mean photon number                   [integer]
 max_order = 5;      % max modal order                      [integer]
-basis = 'Zernike';  % basis                           [string] ['Gram-Schmidt','Zernike', 'Direct-Detection']
-%basis = 'Direct-Detection';  % basis                       [string] ['Gram-Schmidt','Zernike', 'Direct-Detection']
+basis = 'Gram-Schmidt';  % basis                           [string] ['Gram-Schmidt','Zernike', 'Direct-Detection']
 mom_samp = 67;      % sub-aperure samples along each axis  --> Bounding box for each aperture has dimensions [mom_samp,mom_samp]
 pos_samp = 129;     % image-plane samples along each axis  --> Image plane for source position estimates has dimensions [pos_samp,pos_samp]
 EM_max = 100;        % max number of EM iterations          [integer]
 dark_lambda = 0;    % dark current rate [integer]
-phase_sigma = 0;% phase error (in waves) of mixing channels [double] --> Applies only to local aperture mixing modes 
+phase_sigma = 0;    % phase error (in waves) of mixing channels [double] --> Applies only to local aperture mixing modes 
 brite_flag = 0;     % brightness estimation flag [boolean]
 exoplanet_flag = 1; % scene is exoplanet search [boolean]
 visualize = 1;      % visualization flag for seeing output [boolean]
