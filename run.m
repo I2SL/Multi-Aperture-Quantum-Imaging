@@ -11,7 +11,7 @@ mono = [0,0,r(1)];
 golay9 = [Golay9(R-r(9)),r(9)*ones(9,1)];
 ring9 = [Polygon(9,0,'radius',R-r(9)),r(9)*ones(9,1)];
 plus9 = [PlusAperture(9,R-r(9)),r(9)*ones(9,1)];
-aperture = ring9;
+aperture = golay9;
 
 % make the scene
 n_src = 2;                                  % number of sources
@@ -30,9 +30,9 @@ scene = [src_coords_frac, src_brites];           % input scene. [Nx3] scene(:,1:
 
 % set the system parameters
 %n_pho = 1e4*n_src*9/100;        % mean photon number                   [integer]
-n_pho = 1e8;        % mean photon number                   [integer]
+n_pho = 1e1;        % mean photon number                   [integer]
 max_order = 5;      % max modal order                      [integer]
-basis = 'Gram-Schmidt';  % basis                           [string] ['Gram-Schmidt','Zernike', 'Direct-Detection']
+basis = 'Zernike';  % basis                           [string] ['Gram-Schmidt','Zernike', 'Direct-Detection']
 %basis = 'Direct-Detection';  % basis                       [string] ['Gram-Schmidt','Zernike', 'Direct-Detection']
 mom_samp = 67;      % sub-aperure samples along each axis  --> Bounding box for each aperture has dimensions [mom_samp,mom_samp]
 pos_samp = 129;     % image-plane samples along each axis  --> Image plane for source position estimates has dimensions [pos_samp,pos_samp]

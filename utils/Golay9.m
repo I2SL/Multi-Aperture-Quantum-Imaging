@@ -7,7 +7,7 @@ function aper_coords  = Golay9(R)
     R1 = R * 1/3 * ones(3,1);   % radial coordinates for inner circle of apertures
     R2 = R * 2/3 * ones(3,1);   % radial coordinates for middle circle of apertures
     R3 = R * 3/3 * ones(3,1);   % radial coordinates for outer circle of apertures
-    rho = [R1; R2; R3];   % golay-9 radii 
+    rho = [R1; R2; R3];   % golay-9 radii `
 
     tri = linspace(0,(2*pi)*2/3,3)' + pi/2;
     a3 = (2*pi/3)*0/3 + tri;    % angular coordinates for inner circle

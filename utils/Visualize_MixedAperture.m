@@ -24,10 +24,15 @@ function Visualize_MixedAperture(nj,mj,vj,X,Y,rl,U,aperture)
            imagesc([min(X(:)),max(X(:))]/rl,[min(Y(:)),max(Y(:))]/rl,psi_nmv(:,:,j))
            axis 'square'
            title(['$(',num2str(n),',',num2str(m),')_',num2str(v),'$'],'interpreter','latex')
+           xlabel('$x/\sigma$','interpreter','latex')
+           ylabel('$y/\sigma$','interpreter','latex')
            xticks([])
            yticks([])
        end
 end
+
+
+
 
 %{
 function Visualize_MixedAperture(nj,mj,vj,X,Y,rl,U,aper_coords)
