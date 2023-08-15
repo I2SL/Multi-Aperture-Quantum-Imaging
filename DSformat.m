@@ -13,7 +13,7 @@ function DS = DSformat()
     save_dir = fullfile('COSI_Simulations','data_out');
     
     % constants
-    trials = 100;        % trials per configuration
+    trials = 1000;      % trials per configuration
     mom_samp = 67;      % sample density of aperture plane [Gram-Schmidt] [samples/length]
     pos_samp = 129;     % image plane samples (must be odd!)
     EM_iters_max = 30;  % max EM iterations
