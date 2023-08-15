@@ -12,7 +12,7 @@
 ### number of cpus per task
 #SBATCH --cpus-per-task=94
 ### the name of the job
-#SBATCH --job-name=MultiAp_DarkCurrent
+#SBATCH --job-name=COSI_simulations
 ### memory per CPU
 #SBATCH --mem-per-cpu=5gb
 ### total memory requested = memory per cpu x cpus per task. Better not to use if you have ntasks and cpus per task set
@@ -50,4 +50,4 @@
 
 module load matlab
 
-matlab matlab -nodisplay -nosplash -batch "DarkCurrentSurvey($SLURM_ARRAY_TASK_ID,94)" output_{$SLURM_ARRAY_TASK_ID}.txt
+matlab matlab -nodisplay -nosplash -batch "Ap9Survey($SLURM_ARRAY_TASK_ID,94)" output_{$SLURM_ARRAY_TASK_ID}.txt

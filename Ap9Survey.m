@@ -109,10 +109,10 @@ function Ap9Survey(array_id,num_workers)
     disp(['-------Configuration: ' num2str(array_id),'/',num2str(prod(DS.cfg_size)),'--------'])    
     
     % run parameter scans using matlab's Parallel Computing Toolbox
-    parpool(num_workers)
+    %parpool(num_workers)
 
-    %for t=1:DS.trials
-    parfor t=1:DS.trials
+    for t=1:DS.trials
+    %parfor t=1:DS.trials
         
         % set the random number generator seed (must include the parallel
         % worker in the seed for different instances to develop different scenes)
@@ -134,11 +134,13 @@ function Ap9Survey(array_id,num_workers)
         s_x = rl * scene(:,1);
         s_y = rl * scene(:,2);
         src_coords = [s_x,s_y];
+        src_brites = scene(:,3);
         
         % total number of detected photons
-        fill_factor = sum(aper_rads.^2) / (D_eff/2)^2;
-        N = poissrnd(num_pho*num_src*fill_factor);  
-        
+        %fill_factor = sum(aper_rads.^2) / (D_eff/2)^2;
+        %N = poissrnd(num_pho*num_src*fill_factor);  
+        N = poissrnd(num_pho);
+
         % simulate the measurement
         switch basis
             case 'Direct-Detection'
@@ -146,13 +148,13 @@ function Ap9Survey(array_id,num_workers)
                 % distribution given by the ground truth sources and
                 % the aperture configuration
                 p_DD = sum(s_b .*prob_fn(s_x,s_y),1);
-                [pho_xy_id, mode_counts] = simulateMeasurement(N, p_DD, 0);                 
+                [mode_counts,pho_xy_id] = simulateMeasurement(N, p_DD,'isPoiss',1);                 
                 x_DD = X_DD(pho_xy_id);
                 y_DD = Y_DD(pho_xy_id);
             otherwise
                 % get modal probabilities for the given source distribution
                 p_modes = sum(s_b .* prob_fn(s_x,s_y),1);
-                [~, mode_counts] = simulateMeasurement(N, p_modes, 0);   
+                mode_counts = simulateMeasurement(N, p_modes, 'isPoiss',1);   
         end
 
         % different EM initializations
@@ -164,7 +166,7 @@ function Ap9Survey(array_id,num_workers)
                 case 'Direct-Detection'
                     [s_b_trc, s_x_trc, s_y_trc, loglike_trc, iters] = EM_DD([x_DD',y_DD'],num_src,aperture,rl,EM_iters_max,0);                        
                 otherwise
-                    [s_b_trc, s_x_trc, s_y_trc, loglike_trc, iters] = EM(mode_counts,num_src,src_coords,prob_fn,X_GS,Y_GS,rl,EM_iters_max,0);                        
+                    [s_b_trc, s_x_trc, s_y_trc, loglike_trc, iters] = EM(mode_counts,num_src,src_coords,src_brites,prob_fn,X_GS,Y_GS,rl,EM_iters_max,0,0);                        
             end
 
             % final scene parameter estimates

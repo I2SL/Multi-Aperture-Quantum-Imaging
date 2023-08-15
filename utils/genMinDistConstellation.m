@@ -46,7 +46,45 @@ function xy = genMinDistConstellation(b, min_sep, centroid_aligned)
         
     % variablility in deviation from min_sep
     epsilon = min_sep/100;
+
+
+    make_video = 0;
+    if make_video
+
+        
+        figure('units','normalized','outerposition',[0 0 1 1])
+        [th,r] = meshgrid(2*pi*linspace(0,1,100),ones(1,100)*min_sep);
+        [cx,cy] = pol2cart(th(:),r(:));
+        v = VideoWriter('Chain-Link','MPEG-4');
+        v.Quality = 100;
+        v.FrameRate = 2;
+        open(v)
+        writeFrame = @(v) writeVideo(v,getframe(gcf));
+
+
+        set(gcf,'Color','k')
+        set(gcf, 'InvertHardCopy', 'off'); 
+        set(gcf,'Color',[0 0 0]); % RGB values [0 0 0] indicates black color
+        set(gcf,'GraphicsSmoothing','on')
+        hold on
+        scatter(xy(1,1),xy(1,2),'filled','white')
+        ax = gca;
+        set(ax,'Color','k')
+        ax.XColor = 'w';
+        ax.YColor = 'w';
+        xlabel('x [rl]')
+        ylabel('y [rl]')
+        xlim([-.5,.5])
+        ylim([-.5,.5])
+        axis square
+        writeFrame(v)
+        plot(cx+p1(:,1),cy+p1(:,2),'Color','blue','LineWidth',1);
+        writeFrame(v)
+    end
     
+    % graph network repn
+    G = zeros(n);
+
     % generate remaining samples
     for k = 2:n
         % check if all the points are within the min separation criteria,
@@ -63,12 +101,35 @@ function xy = genMinDistConstellation(b, min_sep, centroid_aligned)
             % generate the new point pk
             pk = pj + rk;
             
-            % add pk to the list of point coordinaters
-            xy(k,:) = pk;    
-            
+            % add pk to the list of point coordinates after the random
+            % index j
+            xy(k,:) = pk;  
+
+           if all(pdist(xy(1:k,:)) >= min_sep - (epsilon/2))
+               
+                G(j,k) = 1;
+           end
+
+           if make_video
+                scatter(xy(1:k,1),xy(1:k,2),'filled','white')
+                %plot(graph(G(1:k,1:k),'upper'),'EdgeColor','w','NodeColor','w','NodeLabel',{},'XData',xy(:,1),'YData',xy(:,2),'Linewidth',3)
+                
+                if all(pdist(xy(1:k,:)) >= min_sep - (epsilon/2))
+                    plot(xy([j,k],1),xy([j,k],2),'Color','w','LineWidth',1)
+                else
+                    plot(xy([j,k],1),xy([j,k],2),'Color','red','LineWidth',1)
+                end
+
+                writeFrame(v)
+           end
+        end
+        if make_video
+            plot(xy([j,k],1),xy([j,k],2),'Color','w','LineWidth',1)
+            plot(graph(G(1:k,1:k),'upper'),'EdgeColor','w','NodeColor','w','NodeLabel',{},'XData',xy(:,1),'YData',xy(:,2),'Linewidth',3)
+            plot(cx+pk(:,1),cy+pk(:,2),'Color','blue','LineWidth',1)
+            writeFrame(v)
         end
     end
-
     
     % realign the centroid
     if centroid_aligned
@@ -80,6 +141,32 @@ function xy = genMinDistConstellation(b, min_sep, centroid_aligned)
             xy = genMinDistConstellation(b, min_sep, centroid_aligned);
         end
     end
+    
+    if make_video
+        close(v)
+    end
+
+    %{
+    if make_video
+        hold off
+        figure
+        hold on
+        scatter(xy(:,1),xy(:,2),'filled','w')
+        plot(xy(:,1),xy(:,2),'Color','w')
+        for k = 1:n
+            plot(xy(k,1)+cx, xy(k,2)+cy,'Color','blue'); 
+        end
+        xlabel('x [rl]')
+        ylabel('y [rl]')
+        xlim([-.5,.5])
+        ylim([-.5,.5])
+        axis square
+        writeFrame(v)
+    
+        hold off
+        close(v)
+    end
+    %}
 end
 
 

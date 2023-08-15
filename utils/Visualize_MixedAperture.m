@@ -32,8 +32,6 @@ function Visualize_MixedAperture(nj,mj,vj,X,Y,rl,U,aperture)
 end
 
 
-
-
 %{
 function Visualize_MixedAperture(nj,mj,vj,X,Y,rl,U,aper_coords)
        % A visualization script for seeing the mixed aperture modes.
