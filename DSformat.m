@@ -10,7 +10,7 @@ function DS = DSformat()
     % err                   --> [1 x 1 x EM_cycles] array with the fractional localization error of the estimate produced at each EM cycle
 
     % save directory
-    save_dir = fullfile('COSI_Simulations','data_out');
+    save_dir = fullfile('COSI_Simulations_GS','data_out');
     
     % constants
     trials = 1000;      % trials per configuration
@@ -58,8 +58,8 @@ function DS = DSformat()
     
     % array properties (parameter scans)
     DS.num_pho = 5e6;    % mean photon count
-    DS.basis = {'Gram-Schmidt','Direct-Detection'};
-    DS.min_sep_frac = 2.^linspace(-4,-2,7); % fractional rayleigh units
+    DS.basis = {'Gram-Schmidt'};
+    DS.min_sep_frac = 2.^linspace(-4,-2,15); % fractional rayleigh units
     DS.align_centroid = 1;
     DS.apertures = apertures;                 
     DS.aperture_names = aperture_names;
