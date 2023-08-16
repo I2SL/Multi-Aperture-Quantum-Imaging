@@ -10,7 +10,7 @@ function DS = DSformat()
     % err                   --> [1 x 1 x EM_cycles] array with the fractional localization error of the estimate produced at each EM cycle
 
     % save directory
-    save_dir = fullfile('COSI_Simulations_GS','data_out');
+    save_dir = fullfile('COSI_Simulations_GS2','data_out');
     
     % constants
     trials = 1000;      % trials per configuration
@@ -18,7 +18,7 @@ function DS = DSformat()
     pos_samp = 129;     % image plane samples (must be odd!)
     EM_iters_max = 30;  % max EM iterations
     EM_cycles = 15;     % number of times to run the EM algorithm (with different initializations) on the same measurement
-    max_order = 5;      % max basis order for GS and Zernike    
+    max_order = 10;      % max basis order for GS and Zernike    
     
     % setup apertures
     A = 1;                  % total aperture area budget        [length^2]
@@ -59,7 +59,7 @@ function DS = DSformat()
     % array properties (parameter scans)
     DS.num_pho = 5e6;    % mean photon count
     DS.basis = {'Gram-Schmidt'};
-    DS.min_sep_frac = 2.^linspace(-4,-2,15); % fractional rayleigh units
+    DS.min_sep_frac = 2.^linspace(-6,-2,15); % fractional rayleigh units
     DS.align_centroid = 1;
     DS.apertures = apertures;                 
     DS.aperture_names = aperture_names;

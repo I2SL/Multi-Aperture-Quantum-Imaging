@@ -63,7 +63,7 @@ function Ap9Survey(array_id,num_workers)
         case 'Gram-Schmidt'
             
             % number of modes
-            num_modes = (max_order+1)^2;
+            num_modes = ((max_order+1)*(max_order+2))/2;
 
             % aperture plane discretization
             [Kx,Ky,d2k] = ApertureKxKy(aper_coords,aper_rads,DS.mom_samp);     % Kx [u], Ky [u], d2k [u^2]
